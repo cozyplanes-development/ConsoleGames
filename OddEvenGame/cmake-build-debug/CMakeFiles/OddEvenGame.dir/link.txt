@@ -1,0 +1,1 @@
+/Library/Developer/CommandLineTools/usr/bin/cc  -g -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/OddEvenGame.dir/main.c.o CMakeFiles/OddEvenGame.dir/game.c.o  -o OddEvenGame 
