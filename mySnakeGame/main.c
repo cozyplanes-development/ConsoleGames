@@ -1,5 +1,8 @@
 //move snake
-//collision
+//make tail, remove tail
+//collision with wall
+//collision with itself
+//collision with fruit
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,8 +14,6 @@
 #define DEFAULT_X 0
 #define DEFAULT_Y 0
 
-//#define MAP_X_SIZE 32
-//#define MAP_Y_SIZE 12
 #define UP 72
 #define LEFT 75
 #define RIGHT 77
@@ -23,8 +24,6 @@
 #define EMPTY 0
 #define HEAD 2
 #define FRUIT 5
-
-
 
 typedef int MData;
 
@@ -103,6 +102,9 @@ void drawMap(MData map[MAP_SIZE][MAP_SIZE]){
             }else if(map[i][j] == FRUIT){
                 gotoxy(i,j);
                 printf("+");
+            }else if(map[i][j] == EMPTY){
+                gotoxy(i,j);
+                printf(" ");
             }
         }
     }
@@ -116,9 +118,6 @@ void drawMap(MData map[MAP_SIZE][MAP_SIZE]){
 
 }
 
-void setSnake(MData map[MAP_SIZE][MAP_SIZE]){
-    map[MAP_SIZE/2][MAP_SIZE/2] = 2;
-}
 
 int setFruit(MData map[MAP_SIZE][MAP_SIZE]){
 // i,j >0  &&  i,j < MAP_SIZE-1i
@@ -134,32 +133,62 @@ int setFruit(MData map[MAP_SIZE][MAP_SIZE]){
     }
 }
 
-int moveSnake(MData map[MAP_SIZE][MAP_SIZE], int way){
+void setSnake(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
+    map[snake_x][snake_y] = 2;
+}
+void removeSnake(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
+    map[snake_x][snake_y] = 0;
+}
+//get snake x, y and move snake
+int moveSnake(MData map[MAP_SIZE][MAP_SIZE],int * px, int * py,int way){
     if(way == UP){
+        if(*py < 2) return -1;
+        setSnake(map, *px, (*py)-1);
+        removeSnake(map, *px, *py);
+        *py -= 1;
         printf("u\n");
+        return UP;
     }
     if(way == DOWN){
+        if(*py > MAP_SIZE-3) return -1;
+        setSnake(map, *px, (*py)+1);
+        removeSnake(map, *px, *py);
+        *py += 1;
         printf("d\n");
+        return DOWN;
     }
     if(way == LEFT){
+        if(*px < 2) return -1;
+        setSnake(map, (*px)-1, *py);
+        removeSnake(map, *px, *py);
+        *px -= 1;
         printf("l\n");
+        return LEFT;
     }
     if(way == RIGHT){
+        if(*px > MAP_SIZE-3) return -1;
+        setSnake(map, (*px)+1, *py);
+        removeSnake(map, *px, *py);
+        *px += 1;
         printf("r\n");
+        return RIGHT;
     }
 }
 
 void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
-    int key;
+    int key, savedKey=0;
     int fruit = 0; //0 => no fruite, 1=> one fruit
-    setSnake(map);
+    int snake_x = MAP_SIZE/2, snake_y = MAP_SIZE/2;
+    setSnake(map, snake_x, snake_y);
 
     while (1) {
         gotoxy(DEFAULT_X, DEFAULT_Y);
         if (fruit == 0) {          // draw fruit
             fruit = setFruit(map);
         }
+
         drawMap(map);           // draw map include snake, fruit and wall
+        Sleep(1000/30);
 
         if(kbhit()) {
             key = getch();
@@ -169,30 +198,34 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
             if (key == 'p' || key == 'P'){
                 system("pause");
                 gotoxy(DEFAULT_X,MAP_SIZE+6);
-                printf("                                      ");
+                printf("    You are so beautiful M.J.          ");
+                //printf("                                            ");
                 gotoxy(DEFAULT_X, DEFAULT_Y);
             }
             if (key == 224 || key == 0) {
                 key = getch();
                 switch (key) {
                     case UP:
-                        moveSnake(map, UP);
+                        savedKey = moveSnake(map, &snake_x, &snake_y, UP);
                         break;
                     case LEFT:
-                        moveSnake(map, LEFT);
+                        savedKey = moveSnake(map, &snake_x, &snake_y, LEFT);
                         break;
                     case RIGHT:
-                        moveSnake(map, RIGHT);
+                        savedKey = moveSnake(map, &snake_x, &snake_y, RIGHT);
                         break;
                     case DOWN:
-                        moveSnake(map, DOWN);
+                        savedKey = moveSnake(map, &snake_x, &snake_y, DOWN);
                         break;
                     default:
                         break;
                 }
             }
+        }else{
+            if(savedKey!=0) moveSnake(map, &snake_x, &snake_y, savedKey);
         }
     }
+
 }
 
 int main() {
