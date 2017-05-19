@@ -1,10 +1,11 @@
-//move snake -> 70% 
+//move snake -> 70%
 //make tail, remove tail
 //collision with wall
 //collision with itself
 //collision with fruit -> 50%
 //read best score from file.
 //write best score to file
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +27,7 @@
 #define EMPTY 0
 #define HEAD 2
 #define FRUIT 5
+#define COLLISION 10
 
 typedef int MData;
 
@@ -54,7 +56,7 @@ void gotoxy(int x, int y){
 }
 
 //show start menu
-void drawStartMenu(){
+int drawStartMenu(){
     gotoxy(DEFAULT_X,DEFAULT_Y);
  	printf("================ Snake Game ================");
     gotoxy(DEFAULT_X,DEFAULT_Y+2);
@@ -67,15 +69,19 @@ void drawStartMenu(){
 
     while(1){
         int keyDown = getKeyDown();
-            if(keyDown == 's' || keyDown == 'S') {
-                break;
-            }
+        if(keyDown == 's' || keyDown == 'S') {
+            return TRUE;
+        }
+        if(keyDown == 't' || keyDown == 'T'){
+            return FALSE;
+        }
+
         gotoxy(DEFAULT_X+4,DEFAULT_Y+7);
         printf("-- press 's' to start --");
-        sleep(1);
+        Sleep(1000/3);
         gotoxy(DEFAULT_X+4,DEFAULT_Y+7);
         printf("                         ");
-        sleep(1);
+        Sleep(1000/3);
     }
 
 }
@@ -158,7 +164,7 @@ void removeSnake(MData map[MAP_SIZE][MAP_SIZE], int *snake_x, int *snake_y){
 //get snake x, y and move snake
 int moveSnake(MData map[MAP_SIZE][MAP_SIZE],int * px, int * py,int way){
     if(way == UP){
-        if(*py < 2) return -1;
+        if(*py < 2) return COLLISION;
         removeSnake(map, px, py);
         *py -= 1;
         setSnake(map, px, py);
@@ -166,7 +172,7 @@ int moveSnake(MData map[MAP_SIZE][MAP_SIZE],int * px, int * py,int way){
         return UP;
     }
     if(way == DOWN){
-        if(*py > MAP_SIZE-3) return -1;
+        if(*py > MAP_SIZE-3) return COLLISION;
         removeSnake(map, px, py);
         *py += 1;
         setSnake(map, px, py);
@@ -174,7 +180,7 @@ int moveSnake(MData map[MAP_SIZE][MAP_SIZE],int * px, int * py,int way){
         return DOWN;
     }
     if(way == LEFT){
-        if(*px < 2) return -1;
+        if(*px < 2) return COLLISION;
         removeSnake(map, px, py);
         *px -= 1;
         setSnake(map, px, py);
@@ -182,7 +188,7 @@ int moveSnake(MData map[MAP_SIZE][MAP_SIZE],int * px, int * py,int way){
         return LEFT;
     }
     if(way == RIGHT){
-        if(*px > MAP_SIZE-3) return -1;
+        if(*px > MAP_SIZE-3) return COLLISION;
         removeSnake(map, px, py);
         *px += 1;
         setSnake(map, px, py);
@@ -191,12 +197,27 @@ int moveSnake(MData map[MAP_SIZE][MAP_SIZE],int * px, int * py,int way){
     }
 }
 
-int colWithFruit(MData map[MAP_SIZE][MAP_SIZE], SnakePos * ps, FruitPos * pf){
+int colWithFruit(SnakePos * ps, FruitPos * pf){
     //meet;
     if(ps->x == pf->x && ps->y == pf->y){
         return TRUE;
     }
     return FALSE;
+}
+int colWithWall(SnakePos * ps){
+    if(ps->x <2)
+    return TRUE;
+    return FALSE;
+}
+void GameOver(int score){
+    gotoxy(MAP_SIZE/2-4, MAP_SIZE/2-5);
+    printf("===<GAME OVER>===\n");
+    gotoxy(MAP_SIZE/2-4, MAP_SIZE/2-3);
+    //printf("Do again Bro\n");
+    //gotoxy(MAP_SIZE/2-4, MAP_SIZE/2-2);
+    printf("Your Score : %d\n", score);
+    gotoxy(DEFAULT_X+8,MAP_SIZE+5);
+    printf("\n");
 }
 
 void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
@@ -216,11 +237,12 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
 
         drawMainMap(map);           // draw map include snake, fruit and wall
         drawSubMap(score, best);
-        Sleep(1000/30);
-         if(colWithFruit(map, &spos, &fpos) == TRUE){
+        Sleep(1000/20);             // snake speed
+         if(colWithFruit(&spos, &fpos) == TRUE){
              fruit = 0;
              score += 5;
          }
+
         if(kbhit()) {
             key = getch();
             if (key == 't' || key == 'T') {     //exit
@@ -238,22 +260,43 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
                 switch (key) {
                     case UP:
                         savedKey = moveSnake(map, &spos.x, &spos.y, UP);
+                        if(savedKey == COLLISION){
+                            GameOver(score);
+                            return;
+                        }
                         break;
                     case LEFT:
                         savedKey = moveSnake(map, &spos.x, &spos.y, LEFT);
+                        if(savedKey == COLLISION){
+                            GameOver(score);
+                            return;
+                        }
                         break;
                     case RIGHT:
                         savedKey = moveSnake(map, &spos.x, &spos.y, RIGHT);
+                        if(savedKey == COLLISION){
+                            GameOver(score);
+                            return;
+                        }
                         break;
                     case DOWN:
                         savedKey = moveSnake(map, &spos.x, &spos.y, DOWN);
+                        if(savedKey == COLLISION){
+                            GameOver(score);
+                            return;
+                        }
                         break;
                     default:
                         break;
                 }
             }
         }else{
-            if(savedKey!=0) moveSnake(map,  &spos.x, &spos.y, savedKey);
+            if(savedKey!=0) {
+                if(moveSnake(map,  &spos.x, &spos.y, savedKey) == COLLISION){
+                    GameOver(score);
+                    return ;
+                }
+            }
         }
     }
 
@@ -261,12 +304,16 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
 
 int main() {
     MData map[MAP_SIZE][MAP_SIZE] ;
-    mapInit(map);
-    system("mode con: cols=44 lines=30");   //console size
-    drawStartMenu();
-    system("cls");
-    GameStart(map);
-    system("pause");
+
+    while(1){
+        mapInit(map);
+        system("mode con: cols=44 lines=30");   //console size
+        if(drawStartMenu() == FALSE) break;
+        system("cls");
+        GameStart(map);
+        system("pause");
+
+    }
 
     return 0;
 }
