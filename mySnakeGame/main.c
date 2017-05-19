@@ -1,91 +1,208 @@
-//저장,
-//score 는 thread이용해서 돌리고,
-//뱀 있어야하고
-//음식 있어야함.
+//move snake
+//collision
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <conio.h>
+#include <unistd.h>
+#include <Windows.h>
+#include <time.h>
 
-#define X 32
-#define Y 12
+#define DEFAULT_X 0
+#define DEFAULT_Y 0
 
-void init(char (*arr)[X]){
-    int i, j;
-    for(i=0; i<Y;i++){
-        if(i==0 || i==Y-1){
-            for(j=0;j<X;j++){
-                arr[i][j] = '=';
-            }
-        }else {
+//#define MAP_X_SIZE 32
+//#define MAP_Y_SIZE 12
+#define UP 72
+#define LEFT 75
+#define RIGHT 77
+#define DOWN 80
+#define MAP_SIZE 22
 
-            for (j = 0; j < X; j++) {
-                if(j==(X-1)/2){
-                    arr[i][j] = '|';
-                }else{
-                    arr[i][j] = ' ';
-                }
-            }
-        }
-    }
+#define WALL 1
+#define EMPTY 0
+#define HEAD 2
+#define FRUIT 5
+
+
+
+typedef int MData;
+
+//keyboard input
+int getKeyDown() {
+    if(kbhit()) return getch();
+    return -1;
 }
 
-void draw(char (*arr)[X]){
-    printf("========== Snake Game ==========\n");
-    printf("Key : up down left right\n");
-    printf("Exit : 't' or 'T' \n");
-
-    int i, j;
-    for(i=0;i<Y;i++){
-        for(j=0; j<X;j++){
-            printf("%c",arr[i][j]);
-        }
-        printf("\n");
-    }
-    printf("scode : \n");
-    printf("\t\t\tmade by BlockDMask\n");
+//move cursor
+void gotoxy(int x, int y){
+	COORD Pos;
+	Pos.X = 2*x;
+	Pos.Y = y;
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), Pos);
 }
 
-void GameStart(char (*arr)[X]){
-    int key;
+//show start menu
+void drawStartMenu(){
+    gotoxy(DEFAULT_X,DEFAULT_Y);
+ 	printf("================ Snake Game ================");
+    gotoxy(DEFAULT_X,DEFAULT_Y+2);
+    printf("> Key  : up, down, left, right,");
+    gotoxy(DEFAULT_X,DEFAULT_Y+3);
+    printf("> Exit : 't'");
+
+    gotoxy(DEFAULT_X+12,DEFAULT_Y+10);
+    printf("made by BlockDMask.");
+
     while(1){
-        if(kbhit()){
+        int keyDown = getKeyDown();
+            if(keyDown == 's' || keyDown == 'S') {
+                break;
+            }
+        gotoxy(DEFAULT_X+4,DEFAULT_Y+7);
+        printf("-- press 's' to start --");
+        sleep(1);
+        gotoxy(DEFAULT_X+4,DEFAULT_Y+7);
+        printf("                         ");
+        sleep(1);
+    }
+
+}
+
+void mapInit(MData map[MAP_SIZE][MAP_SIZE]){
+    int i,j;
+
+    for(i=0; i<MAP_SIZE; i++){
+        if(i==0 || i==MAP_SIZE-1){
+            for(j=0; j<MAP_SIZE;j++){
+                map[i][j] = WALL;
+            }
+        }else{
+            for(j=0; j<MAP_SIZE;j++){
+                if(j==0 || j==MAP_SIZE-1)
+                    map[i][j] = WALL;
+                else
+                    map[i][j] = EMPTY;
+            }
+        }
+
+    }
+}
+
+//draw game map
+void drawMap(MData map[MAP_SIZE][MAP_SIZE]){
+    int i, j;
+    for(i=0; i<MAP_SIZE;i++){
+        for(j=0;j<MAP_SIZE;j++){
+            if(map[i][j]==WALL){
+                gotoxy(i,j);
+                printf("*");
+            }else if(map[i][j] == HEAD){
+                gotoxy(i,j);
+                printf("s");
+            }else if(map[i][j] == FRUIT){
+                gotoxy(i,j);
+                printf("+");
+            }
+        }
+    }
+
+    gotoxy(DEFAULT_X,MAP_SIZE+1);
+    printf("Score : ");
+    gotoxy(DEFAULT_X,MAP_SIZE+2);
+    printf("Best  : ");
+    gotoxy(DEFAULT_X+8,MAP_SIZE+5);
+    printf("[Exit - 't' / Pause - 'p']\n");
+
+}
+
+void setSnake(MData map[MAP_SIZE][MAP_SIZE]){
+    map[MAP_SIZE/2][MAP_SIZE/2] = 2;
+}
+
+int setFruit(MData map[MAP_SIZE][MAP_SIZE]){
+// i,j >0  &&  i,j < MAP_SIZE-1i
+    int i, j;
+    srand((unsigned int)time(NULL));
+    while(1){
+        i=rand()%(MAP_SIZE-2) + 1;
+        j=rand()%(MAP_SIZE-2) + 1;
+        if(map[i][j] == EMPTY){
+            map[i][j] = 5;
+            return 1;
+        }
+    }
+}
+
+int moveSnake(MData map[MAP_SIZE][MAP_SIZE], int way){
+    if(way == UP){
+        printf("u\n");
+    }
+    if(way == DOWN){
+        printf("d\n");
+    }
+    if(way == LEFT){
+        printf("l\n");
+    }
+    if(way == RIGHT){
+        printf("r\n");
+    }
+}
+
+void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
+    int key;
+    int fruit = 0; //0 => no fruite, 1=> one fruit
+    setSnake(map);
+
+    while (1) {
+        gotoxy(DEFAULT_X, DEFAULT_Y);
+        if (fruit == 0) {          // draw fruit
+            fruit = setFruit(map);
+        }
+        drawMap(map);           // draw map include snake, fruit and wall
+
+        if(kbhit()) {
             key = getch();
-            if(key=='t'||key=='T') break;
-            if(key ==224 || key==0){
-                key=getch();
-                switch(key){
-                    case 72:
-                        printf("up\n");
+            if (key == 't' || key == 'T') {     //exit
+                return;
+            }
+            if (key == 'p' || key == 'P'){
+                system("pause");
+                gotoxy(DEFAULT_X,MAP_SIZE+6);
+                printf("                                      ");
+                gotoxy(DEFAULT_X, DEFAULT_Y);
+            }
+            if (key == 224 || key == 0) {
+                key = getch();
+                switch (key) {
+                    case UP:
+                        moveSnake(map, UP);
                         break;
-                    case 75:
-                        printf("left\n");
+                    case LEFT:
+                        moveSnake(map, LEFT);
                         break;
-                    case 77:
-                        printf("right\n");
+                    case RIGHT:
+                        moveSnake(map, RIGHT);
                         break;
-                    case 80:
-                        printf("down\n");
+                    case DOWN:
+                        moveSnake(map, DOWN);
                         break;
                     default:
                         break;
                 }
             }
-
         }
-        sleep(1);
-        system("cls");
-        init(arr);
-        draw(arr);
     }
-
 }
 
 int main() {
-    char arr[Y][X] = {0};
-    GameStart(arr);
-    int key;
+    MData map[MAP_SIZE][MAP_SIZE] ;
+    mapInit(map);
+    system("mode con: cols=44 lines=30");   //console size
+    drawStartMenu();
+    system("cls");
+    GameStart(map);
     system("pause");
+
     return 0;
 }
