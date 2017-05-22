@@ -1,12 +1,11 @@
-//move snake -> 70%
-//make tail, remove tail
-//collision with wall
-//collision with itself
-//collision with fruit -> 50%
-//read best score from file.
-//write best score to file
-
-
+//move snake                    o
+//make tail, remove tail        x
+//collision with wall           o
+//collision with itself         x
+//collision with fruit          o
+//read best score from file.    o
+//write best score to file      o
+//what about using Queue.?      ..
 #include <stdio.h>
 #include <stdlib.h>
 #include <conio.h>
@@ -15,6 +14,7 @@
 #include <time.h>
 
 #define DEFAULT_X 0
+
 #define DEFAULT_Y 0
 
 #define UP 72
@@ -26,20 +26,85 @@
 #define WALL 1
 #define EMPTY 0
 #define HEAD 2
+#define TAIL 3
 #define FRUIT 5
 #define COLLISION 10
+
+#define TRUE 1
+#define FALSE 0
+
+#define EASY 10
+#define NORMAL 30
+#define HARD 50
+#define HELL 70
+
 
 typedef int MData;
 
 typedef struct _fruitxy{
     int x;
     int y;
+    int numOfFruit;
 } FruitPos;
 
 typedef struct _snakexp{
     int x;
     int y;
+    int numOfTail;
 } SnakePos;
+
+///////////////////////////QUEUE//////////////////////////////////////////
+
+//typedef int QData;
+typedef struct _mynode{
+    SnakePos data;
+    struct _mynode *next;
+} Node;
+
+typedef struct _myqueue{
+    Node * rear;
+    Node * front;
+} MyQueue;
+typedef MyQueue Queue;
+
+void QueueInit(Queue * pq){
+    pq->rear = NULL;
+    pq->front = NULL;
+}
+int isEmpty(Queue * pq){
+    if(pq->front == NULL)
+        return TRUE;
+    else
+        return FALSE;
+}
+void Enqueue(Queue * pq, SnakePos data){
+    Node * newNode = (Node *)malloc(sizeof(Node));
+    newNode->data = data;
+    if(pq->front == NULL){
+        pq->rear = newNode;
+        pq->front = newNode;
+    }else{
+        pq->rear->next = newNode;
+        pq->rear = newNode;
+    }
+}
+SnakePos Dequeue(Queue * pq){
+    Node * delNode;
+    SnakePos delData = {0,0,0};
+    if(isEmpty(pq)){
+        return delData;
+    }
+
+    delNode = pq->front;
+    delData = delNode->data;
+    pq->front = pq->front->next;
+    free(delNode);
+    return delData;
+}
+SnakePos Peek(Queue * pq){
+    return pq->front->data;
+}
+///////////////////////////////////////////////////////////////////////////
 
 //keyboard input
 int getKeyDown() {
@@ -49,16 +114,17 @@ int getKeyDown() {
 
 //move cursor
 void gotoxy(int x, int y){
-	COORD Pos;
-	Pos.X = 2*x;
-	Pos.Y = y;
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), Pos);
+    COORD Pos;
+    Pos.X = 2*x;
+    Pos.Y = y;
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), Pos);
 }
+
 
 //show start menu
 int drawStartMenu(){
     gotoxy(DEFAULT_X,DEFAULT_Y);
- 	printf("================ Snake Game ================");
+    printf("================ Snake Game ================");
     gotoxy(DEFAULT_X,DEFAULT_Y+2);
     printf("> Key  : up, down, left, right,");
     gotoxy(DEFAULT_X,DEFAULT_Y+3);
@@ -86,6 +152,7 @@ int drawStartMenu(){
 
 }
 
+
 void mapInit(MData map[MAP_SIZE][MAP_SIZE]){
     int i,j;
 
@@ -106,6 +173,7 @@ void mapInit(MData map[MAP_SIZE][MAP_SIZE]){
     }
 }
 
+
 //draw game map
 void drawMainMap(MData map[MAP_SIZE][MAP_SIZE]){
     int i, j;
@@ -123,11 +191,17 @@ void drawMainMap(MData map[MAP_SIZE][MAP_SIZE]){
             }else if(map[i][j] == EMPTY){
                 gotoxy(i,j);
                 printf(" ");
+            }else if(map[i][j] == TAIL){
+                gotoxy(i,j);
+                printf("o");
             }
         }
     }
 
 }
+
+
+
 void drawSubMap(int score, int best){
 
     gotoxy(DEFAULT_X,MAP_SIZE+1);
@@ -139,7 +213,7 @@ void drawSubMap(int score, int best){
 
 }
 
-int setFruit(MData map[MAP_SIZE][MAP_SIZE], FruitPos * pf){
+int setFruit(MData map[MAP_SIZE][MAP_SIZE], FruitPos * fp){
 // i,j >0  &&  i,j < MAP_SIZE-1i
     int i, j;
     srand((unsigned int)time(NULL));
@@ -147,101 +221,154 @@ int setFruit(MData map[MAP_SIZE][MAP_SIZE], FruitPos * pf){
         i=rand()%(MAP_SIZE-2) + 1;
         j=rand()%(MAP_SIZE-2) + 1;
         if(map[i][j] == EMPTY){
-            map[i][j] = 5;
-            pf->x = i;
-            pf->y = j;
+            map[i][j] = FRUIT;
+            fp->x = i;
+            fp->y = j;
+            (fp->numOfFruit)++;
             return 1;
         }
     }
 }
 
-void setSnake(MData map[MAP_SIZE][MAP_SIZE], int *snake_x, int *snake_y){
-    map[*snake_x][*snake_y] = 2;
+
+int setBonusFruit(MData map[MAP_SIZE][MAP_SIZE], FruitPos * fp){
+    int i, j, numOfFruit=0;
+    for(i=0; i<MAP_SIZE-1 ; i++){
+        for(j=0; j<MAP_SIZE ; j++){
+            if(map[i][j] == EMPTY){
+                map[i][j] = FRUIT;
+                numOfFruit++;
+            }
+        }
+    }
+    return numOfFruit;
 }
-void removeSnake(MData map[MAP_SIZE][MAP_SIZE], int *snake_x, int *snake_y){
-    map[*snake_x][*snake_y] = 0;
+
+void setSnake(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
+    map[snake_x][snake_y] = HEAD;
 }
+void removeSnake(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
+    map[snake_x][snake_y] = EMPTY;
+}
+
 //get snake x, y and move snake
-int moveSnake(MData map[MAP_SIZE][MAP_SIZE],int * px, int * py,int way){
+int moveSnake(MData map[MAP_SIZE][MAP_SIZE], SnakePos * snake,int way, Queue * pq){
     if(way == UP){
-        if(*py < 2) return COLLISION;
-        removeSnake(map, px, py);
-        *py -= 1;
-        setSnake(map, px, py);
+        if(snake->y < 2) return COLLISION;
+        removeSnake(map, snake->x, snake->y);
+        snake->y -= 1;
+        setSnake(map, snake->x, snake->y);
         printf("u\n");
         return UP;
     }
     if(way == DOWN){
-        if(*py > MAP_SIZE-3) return COLLISION;
-        removeSnake(map, px, py);
-        *py += 1;
-        setSnake(map, px, py);
+        if(snake->y > MAP_SIZE-3) return COLLISION;
+        removeSnake(map, snake->x, snake->y);
+        snake->y += 1;
+        setSnake(map, snake->x, snake->y);
         printf("d\n");
         return DOWN;
     }
     if(way == LEFT){
-        if(*px < 2) return COLLISION;
-        removeSnake(map, px, py);
-        *px -= 1;
-        setSnake(map, px, py);
+        if(snake->x < 2) return COLLISION;
+        removeSnake(map, snake->x, snake->y);
+        snake->x -= 1;
+        setSnake(map, snake->x, snake->y);
         printf("l\n");
         return LEFT;
     }
     if(way == RIGHT){
-        if(*px > MAP_SIZE-3) return COLLISION;
-        removeSnake(map, px, py);
-        *px += 1;
-        setSnake(map, px, py);
+        if(snake->x > MAP_SIZE-3) return COLLISION;
+        removeSnake(map, snake->x, snake->y);
+        snake->x += 1;
+        setSnake(map, snake->x, snake->y);
         printf("r\n");
         return RIGHT;
     }
+
 }
 
-int colWithFruit(SnakePos * ps, FruitPos * pf){
+int overlap(int savedKey, int key){
+    if(savedKey == UP && key == DOWN)
+        return TRUE;
+    if(savedKey ==DOWN && key == UP)
+        return TRUE;
+    if(savedKey ==LEFT && key == RIGHT)
+        return TRUE;
+    if(savedKey ==RIGHT && key == LEFT)
+        return TRUE;
+
+    return FALSE;
+}
+
+int colWithFruit(SnakePos * sp, FruitPos * fp){
     //meet;
-    if(ps->x == pf->x && ps->y == pf->y){
+    if((sp->x == fp->x && sp->y == fp->y)){
         return TRUE;
     }
     return FALSE;
 }
-int colWithWall(SnakePos * ps){
-    if(ps->x <2)
-    return TRUE;
+
+int isCollision(int state){
+    if(state == COLLISION) return TRUE;
     return FALSE;
 }
-void GameOver(int score){
+void GameOver(int score, int best){
+    FILE * wfp;
+    if(score >= best){
+        wfp = fopen("score.txt", "w");
+        fprintf(wfp, "%d", score);
+        fclose(wfp);
+    }
     gotoxy(MAP_SIZE/2-4, MAP_SIZE/2-5);
     printf("===<GAME OVER>===\n");
     gotoxy(MAP_SIZE/2-4, MAP_SIZE/2-3);
-    //printf("Do again Bro\n");
-    //gotoxy(MAP_SIZE/2-4, MAP_SIZE/2-2);
     printf("Your Score : %d\n", score);
     gotoxy(DEFAULT_X+8,MAP_SIZE+5);
     printf("\n");
+
 }
 
 void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
-    int best = 100; //fake
+    int best = 0;
+    int mode=NORMAL;
+    FILE * rfp;
+    rfp = fopen("score.txt", "r");
+    if(rfp == NULL){
+        best = 0;
+    } else {
+        fscanf(rfp, "%d", &best);
+    }
+    fclose(rfp);
+
     int score = 0;
     int key, savedKey=0;
-    int fruit = 0; //0 => no fruite, 1=> one fruit
-    FruitPos fpos;
-    SnakePos spos = {MAP_SIZE/2, MAP_SIZE/2};
-    setSnake(map, &spos.x, &spos.y);
+    Queue queue;
+    QueueInit(&queue);
+
+    SnakePos snake = {MAP_SIZE/2, MAP_SIZE/2, 0};
+    SnakePos snakeTail = {0,0,0};
+    FruitPos fruit;
+    fruit.numOfFruit=0;
+    setSnake(map, snake.x, snake.y);
+    Enqueue(&queue, snake);
 
     while (1) {
         gotoxy(DEFAULT_X, DEFAULT_Y);
-        if (fruit == 0) {          // draw fruit
-            fruit = setFruit(map, &fpos);
+        if (fruit.numOfFruit == 0) {          // draw fruit
+            setFruit(map, &fruit);
         }
 
         drawMainMap(map);           // draw map include snake, fruit and wall
         drawSubMap(score, best);
-        Sleep(1000/20);             // snake speed
-         if(colWithFruit(&spos, &fpos) == TRUE){
-             fruit = 0;
-             score += 5;
-         }
+        Sleep(1000/(DWORD)mode);             // snake speed
+
+
+        if(colWithFruit(&snake, &fruit) == TRUE){
+            (fruit.numOfFruit)--;
+            (snake.numOfTail)++;
+            score += 5;
+        }
 
         if(kbhit()) {
             key = getch();
@@ -251,56 +378,30 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
             if (key == 'p' || key == 'P'){
                 system("pause");
                 gotoxy(DEFAULT_X,MAP_SIZE+6);
-                //printf("    You are so beautiful M.J.          ");
                 printf("                                            ");
                 gotoxy(DEFAULT_X, DEFAULT_Y);
             }
+
             if (key == 224 || key == 0) {
                 key = getch();
-                switch (key) {
-                    case UP:
-                        savedKey = moveSnake(map, &spos.x, &spos.y, UP);
-                        if(savedKey == COLLISION){
-                            GameOver(score);
-                            return;
-                        }
-                        break;
-                    case LEFT:
-                        savedKey = moveSnake(map, &spos.x, &spos.y, LEFT);
-                        if(savedKey == COLLISION){
-                            GameOver(score);
-                            return;
-                        }
-                        break;
-                    case RIGHT:
-                        savedKey = moveSnake(map, &spos.x, &spos.y, RIGHT);
-                        if(savedKey == COLLISION){
-                            GameOver(score);
-                            return;
-                        }
-                        break;
-                    case DOWN:
-                        savedKey = moveSnake(map, &spos.x, &spos.y, DOWN);
-                        if(savedKey == COLLISION){
-                            GameOver(score);
-                            return;
-                        }
-                        break;
-                    default:
-                        break;
+                if(overlap(savedKey, key) == TRUE){
+                    key = savedKey;
                 }
+                savedKey = moveSnake(map, &snake, key, &queue);
+                if(isCollision(savedKey)){ GameOver(score, best); return;  }
             }
         }else{
             if(savedKey!=0) {
-                if(moveSnake(map,  &spos.x, &spos.y, savedKey) == COLLISION){
-                    GameOver(score);
+                if(isCollision(moveSnake(map, &snake, savedKey,&queue))){
+                    GameOver(score, best);
                     return ;
                 }
             }
         }
     }
-
 }
+
+
 
 int main() {
     MData map[MAP_SIZE][MAP_SIZE] ;
@@ -312,8 +413,6 @@ int main() {
         system("cls");
         GameStart(map);
         system("pause");
-
     }
-
     return 0;
 }
