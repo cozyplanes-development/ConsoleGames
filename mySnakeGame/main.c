@@ -1,11 +1,10 @@
 //move snake                    o
-//make tail, remove tail        x
 //collision with wall           o
 //collision with itself         x
 //collision with fruit          o
 //read best score from file.    o
 //write best score to file      o
-//what about using Queue.?      ..
+//what about using Queue.?      o
 #include <stdio.h>
 #include <stdlib.h>
 #include <conio.h>
@@ -25,17 +24,16 @@
 #define WALL 1
 #define EMPTY 0
 #define HEAD 2
-#define TAIL 3
 #define FRUIT 5
 #define COLLISION 10
 
 #define TRUE 1
 #define FALSE 0
 
-#define EASY 10
-#define NORMAL 30
-#define HARD 50
-#define HELL 70
+#define EASY 8
+#define NORMAL 12
+#define HARD 15
+#define HELL 35
 
 
 typedef int MData;
@@ -49,8 +47,8 @@ typedef struct _fruitxy{
 typedef struct _snakexp{
     int x;
     int y;
-    int numOfTail;
 } SnakePos;
+
 
 ///////////////////////////QUEUE//////////////////////////////////////////
 
@@ -76,9 +74,10 @@ int isEmpty(Queue * pq){
     else
         return FALSE;
 }
-SnakePos Enqueue(Queue * pq, SnakePos data){
+void Enqueue(Queue * pq, SnakePos data){
     Node * newNode = (Node *)malloc(sizeof(Node));
     newNode->data = data;
+    newNode->next = NULL;
     if(pq->front == NULL){
         pq->rear = newNode;
         pq->front = newNode;
@@ -89,11 +88,10 @@ SnakePos Enqueue(Queue * pq, SnakePos data){
 }
 SnakePos Dequeue(Queue * pq){
     Node * delNode;
-    SnakePos delData = {0,0,0};
+    SnakePos delData = {0,0};
     if(isEmpty(pq)){
         return delData;
     }
-
     delNode = pq->front;
     delData = delNode->data;
     pq->front = pq->front->next;
@@ -119,17 +117,28 @@ void gotoxy(int x, int y){
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), Pos);
 }
 
+void hidecursor() {
+    HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_CURSOR_INFO info;
+    info.dwSize = 100;
+    info.bVisible = FALSE;
+    SetConsoleCursorInfo(consoleHandle, &info);
+}
+
 
 //show start menu
 int drawStartMenu(){
+
     gotoxy(DEFAULT_X,DEFAULT_Y);
+    printf("============================================");
     printf("================ Snake Game ================");
-    gotoxy(DEFAULT_X,DEFAULT_Y+2);
+    printf("============================================");
+    gotoxy(DEFAULT_X,DEFAULT_Y+4);
     printf("> Key  : up, down, left, right,");
-    gotoxy(DEFAULT_X,DEFAULT_Y+3);
+    gotoxy(DEFAULT_X,DEFAULT_Y+5);
     printf("> Exit : 't'");
 
-    gotoxy(DEFAULT_X+12,DEFAULT_Y+10);
+    gotoxy(DEFAULT_X+12,DEFAULT_Y+12);
     printf("made by BlockDMask.");
 
     while(1){
@@ -141,11 +150,56 @@ int drawStartMenu(){
             return FALSE;
         }
 
-        gotoxy(DEFAULT_X+4,DEFAULT_Y+7);
+        gotoxy(DEFAULT_X+4,DEFAULT_Y+9);
         printf("-- press 's' to start --");
         Sleep(1000/3);
-        gotoxy(DEFAULT_X+4,DEFAULT_Y+7);
+        gotoxy(DEFAULT_X+4,DEFAULT_Y+9);
         printf("                         ");
+        Sleep(1000/3);
+    }
+
+}
+//show level Menu and score;
+int drawLevelMenu(int * scoreArr){
+    int score, i;
+    FILE * rfp;
+    rfp = fopen("score.txt", "r");
+    gotoxy(DEFAULT_X,DEFAULT_Y+2);
+    printf("================ BEST SCORE ================");
+    if(rfp==NULL){
+        for(i=0; i<4; i++) {
+            gotoxy(DEFAULT_X,DEFAULT_Y+(i+4));
+            printf("Level [%d] : %d", i + 1, scoreArr[i]);
+        }
+    }else{
+        fscanf(rfp, "%d %d %d %d", &scoreArr[0], &scoreArr[1], &scoreArr[2], &scoreArr[3]);
+        for(i=0; i<4; i++){
+            gotoxy(DEFAULT_X,DEFAULT_Y+(i+4));
+            printf("Level [%d] : %d", i+1, scoreArr[i]);
+        }
+    }
+
+    fclose(rfp);
+
+    while(1){
+        int keyDown = getKeyDown();
+        if(keyDown == '1') {
+            return 1;
+        }
+        if(keyDown == '2') {
+            return 2;
+        }
+        if(keyDown == '3') {
+            return 3;
+        }
+        if(keyDown == '4') {
+            return 4;
+        }
+        gotoxy(DEFAULT_X,DEFAULT_Y+9);
+        printf(">> Choose Level : 1, 2, 3, 4");
+        Sleep(1000/3);
+        gotoxy(DEFAULT_X,DEFAULT_Y+9);
+        printf(">>                          ");
         Sleep(1000/3);
     }
 
@@ -154,7 +208,6 @@ int drawStartMenu(){
 
 void mapInit(MData map[MAP_SIZE][MAP_SIZE]){
     int i,j;
-
     for(i=0; i<MAP_SIZE; i++){
         if(i==0 || i==MAP_SIZE-1){
             for(j=0; j<MAP_SIZE;j++){
@@ -190,17 +243,16 @@ void drawMainMap(MData map[MAP_SIZE][MAP_SIZE]){
 }
 
 
-
-
-void drawSubMap(int score, int best){
+void drawSubMap(int score, int best, int level){
     gotoxy(DEFAULT_X,MAP_SIZE+1);
     printf("Score : %4d", score);
     gotoxy(DEFAULT_X,MAP_SIZE+2);
-    printf("Best  : %4d", best);
+    printf("Level[%d] Best  : %4d", level, best);
     gotoxy(DEFAULT_X+8,MAP_SIZE+5);
     printf("[Exit - 't' / Pause - 'p']\n");
 
 }
+/////////////////////////////////////////////////////////////////////////////////////
 
 int setFruit(MData map[MAP_SIZE][MAP_SIZE], FruitPos * fp){
 // i,j >0  &&  i,j < MAP_SIZE-1i
@@ -239,11 +291,7 @@ void setSnake(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
     printf("s");
     map[snake_x][snake_y] = HEAD;
 }
-void setSnakeTail(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
-    gotoxy(snake_x, snake_y);
-    printf("o");
-    map[snake_x][snake_y] = TAIL;
-}
+
 void removeSnake(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
     gotoxy(snake_x, snake_y);
     printf(" ");
@@ -251,9 +299,7 @@ void removeSnake(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
 }
 
 //get snake x, y and move snake
-int moveSnake(MData map[MAP_SIZE][MAP_SIZE], SnakePos * snake,int way, Queue * pq){
-    int i;
-   // removeSnake(map, snake->x, snake->y);
+int moveSnake(MData map[MAP_SIZE][MAP_SIZE], SnakePos * snake,int way){
     if(way == UP){
         if(snake->y < 2) return COLLISION;
         --(snake->y);
@@ -305,60 +351,57 @@ int isCollision(int state){
     if(state == COLLISION) return TRUE;
     return FALSE;
 }
-void GameOver(int score, int best){
+void GameOver(int score, int best, Queue *pq, int level, int * scoreArr){
     FILE * wfp;
-    if(score >= best){
-        wfp = fopen("score.txt", "w");
-        fprintf(wfp, "%d", score);
-        fclose(wfp);
-    }
+    if(score >= best) scoreArr[level-1] =score;
+    wfp = fopen("score.txt", "w");
+    fprintf(wfp, "%d %d %d %d", scoreArr[0], scoreArr[1], scoreArr[2], scoreArr[3]);
+    fclose(wfp);
+
     gotoxy(MAP_SIZE/2-4, MAP_SIZE/2-5);
     printf("===<GAME OVER>===\n");
     gotoxy(MAP_SIZE/2-4, MAP_SIZE/2-3);
     printf("Your Score : %d\n", score);
     gotoxy(DEFAULT_X+8,MAP_SIZE+5);
     printf("\n");
+
+    while(!isEmpty(pq)){
+        Dequeue(pq);
+    }
 }
 
-void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
+void GameStart(MData map[MAP_SIZE][MAP_SIZE], int level, int * scoreArr) {
     int i;
     int best = 0;
-    int mode = EASY;
-    FILE * rfp;
-    rfp = fopen("score.txt", "r");
-    if(rfp == NULL){
-        best = 0;
-    } else {
-        fscanf(rfp, "%d", &best);
-    }
-    fclose(rfp);
+    int mode;
+
+    if(level ==1) mode = EASY;
+    else if(level ==2) mode = NORMAL;
+    else if(level ==3) mode = HARD;
+    else if(level ==4) mode = HELL;
 
     int score = 0;
     int key, savedKey=0;
     Queue queue;
     QueueInit(&queue);
-
-    SnakePos snake = {MAP_SIZE/2, MAP_SIZE/2, 0};
-    SnakePos snakeTail = {0,0,0};
+    SnakePos snake = {MAP_SIZE/2, MAP_SIZE/2};
+    SnakePos snakeTail;
     int time = TRUE;
-
     FruitPos fruit;
     fruit.numOfFruit=0;
     setSnake(map, snake.x, snake.y);
 
+    drawMainMap(map);
+
     while (1) {
-        //gotoxy(DEFAULT_X, DEFAULT_Y);
+        Sleep(1000/(DWORD)mode);             // snake speed
         if (fruit.numOfFruit == 0) {          // draw fruit
             setFruit(map, &fruit);
         }
-
-        drawMainMap(map);           // draw map include snake, fruit and wall
-        drawSubMap(score, best);
-        Sleep(1000/(DWORD)mode);             // snake speed
+        drawSubMap(score, best, level);
 
         if(colWithFruit(&snake, &fruit) == TRUE){
             (fruit.numOfFruit)--;
-            (snake.numOfTail)++;
             time = FALSE;
             score += 5;
         }
@@ -382,29 +425,25 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
                     key = savedKey;
                 }
                 Enqueue(&queue, snake);
-                savedKey = moveSnake(map, &snake, key, &queue);
-
+                savedKey = moveSnake(map, &snake, key);
                 if(time == TRUE){
                     snakeTail = Dequeue(&queue);
                     removeSnake(map, snakeTail.x, snakeTail.y);
                 }else{
                     time = TRUE;
                 }
-
-
-
-                if(isCollision(savedKey)){ GameOver(score, best); return;  }
+                if(isCollision(savedKey)){ GameOver(score, best, &queue,level, scoreArr); return;  }
             }
         }else{
                 Enqueue(&queue, snake);
-                savedKey = moveSnake(map, &snake, savedKey, &queue);
-            if(time == TRUE){
-                snakeTail = Dequeue(&queue);
-                removeSnake(map, snakeTail.x, snakeTail.y);
-            }else{
+                savedKey = moveSnake(map, &snake, savedKey);
+                if(time == TRUE){
+                    snakeTail = Dequeue(&queue);
+                    removeSnake(map, snakeTail.x, snakeTail.y);
+                }else{
                 time = TRUE;
-            }
-                if(isCollision(savedKey)){ GameOver(score, best); return;  }
+                }
+                if(isCollision(savedKey)){ GameOver(score, best,&queue,level,scoreArr); return;  }
 
         }
     }
@@ -413,12 +452,17 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
 int main() {
     MData map[MAP_SIZE][MAP_SIZE] ;
     system("color 2");
+    hidecursor();
+    int level;
+    int scoreArr[4] = {0};
     while(1){
         mapInit(map);
         system("mode con: cols=44 lines=30");   //console size
         if(drawStartMenu() == FALSE) break;
         system("cls");
-        GameStart(map);
+        level = drawLevelMenu(scoreArr);
+        system("cls");
+        GameStart(map, level, scoreArr);
         system("pause");
     }
     return 0;
