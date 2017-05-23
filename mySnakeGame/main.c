@@ -340,7 +340,7 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
 
     SnakePos snake = {MAP_SIZE/2, MAP_SIZE/2, 0};
     SnakePos snakeTail = {0,0,0};
-    int numOfTail = snake.numOfTail;
+    int time = TRUE;
 
     FruitPos fruit;
     fruit.numOfFruit=0;
@@ -359,6 +359,7 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
         if(colWithFruit(&snake, &fruit) == TRUE){
             (fruit.numOfFruit)--;
             (snake.numOfTail)++;
+            time = FALSE;
             score += 5;
         }
 
@@ -382,26 +383,27 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE]) {
                 }
                 Enqueue(&queue, snake);
                 savedKey = moveSnake(map, &snake, key, &queue);
-                if(numOfTail==0){
+
+                if(time == TRUE){
                     snakeTail = Dequeue(&queue);
                     removeSnake(map, snakeTail.x, snakeTail.y);
-                    numOfTail = snake.numOfTail;
                 }else{
-                    numOfTail--;
+                    time = TRUE;
                 }
+
+
 
                 if(isCollision(savedKey)){ GameOver(score, best); return;  }
             }
         }else{
                 Enqueue(&queue, snake);
                 savedKey = moveSnake(map, &snake, savedKey, &queue);
-                if(numOfTail==0){
-                    snakeTail = Dequeue(&queue);
-                    removeSnake(map, snakeTail.x, snakeTail.y);
-                    numOfTail = snake.numOfTail;
-                }else{
-                    numOfTail--;
-                }
+            if(time == TRUE){
+                snakeTail = Dequeue(&queue);
+                removeSnake(map, snakeTail.x, snakeTail.y);
+            }else{
+                time = TRUE;
+            }
                 if(isCollision(savedKey)){ GameOver(score, best); return;  }
 
         }
