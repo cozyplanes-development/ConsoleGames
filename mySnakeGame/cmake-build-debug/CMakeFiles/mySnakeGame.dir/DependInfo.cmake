@@ -4,10 +4,9 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_C
-  "/Users/blockdmask/0GitHub/ToyProgram/mySnakeGame/main.c" "/Users/blockdmask/0GitHub/ToyProgram/mySnakeGame/cmake-build-debug/CMakeFiles/mySnakeGame.dir/main.c.o"
-  "/Users/blockdmask/0GitHub/ToyProgram/mySnakeGame/snake.c" "/Users/blockdmask/0GitHub/ToyProgram/mySnakeGame/cmake-build-debug/CMakeFiles/mySnakeGame.dir/snake.c.o"
+  "C:/Users/DMask/Desktop/Develop/ToyProgram-master/mySnakeGame/main.c" "C:/Users/DMask/Desktop/Develop/ToyProgram-master/mySnakeGame/cmake-build-debug/CMakeFiles/mySnakeGame.dir/main.c.obj"
   )
-set(CMAKE_C_COMPILER_ID "AppleClang")
+set(CMAKE_C_COMPILER_ID "GNU")
 
 # The include file search paths:
 set(CMAKE_C_TARGET_INCLUDE_PATH

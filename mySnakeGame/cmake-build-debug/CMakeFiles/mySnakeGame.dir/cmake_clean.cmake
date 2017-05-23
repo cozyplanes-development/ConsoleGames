@@ -1,8 +1,9 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/mySnakeGame.dir/main.c.o"
-  "CMakeFiles/mySnakeGame.dir/snake.c.o"
+  "CMakeFiles/mySnakeGame.dir/main.c.obj"
   "mySnakeGame.pdb"
-  "mySnakeGame"
+  "mySnakeGame.exe"
+  "mySnakeGame.exe.manifest"
+  "libmySnakeGame.dll.a"
 )
 
 # Per-language clean rules from dependency scanning.
