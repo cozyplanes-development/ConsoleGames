@@ -8,9 +8,8 @@
 //what about using Queue ?      o
 //<V2.0>
 //separate tail with head       o
-//added collision               o
-//map changing                  o
-//<V3.0>--------------------------finish
+//added collision
+//map changing                  x
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -209,6 +208,15 @@ int drawSpeedMenu(int * scoreArr){
 }
 
 //////////////////////////////////////STAGE MAP SETTING////////////////////////////////
+void stageClear(MData map[MAP_SIZE][MAP_SIZE]){
+    int i, j;
+    for(i=0; i<=MAP_SIZE; i++){
+        for(j=0; i<=MAP_SIZE; j++){
+            map[i][j] = EMPTY;
+        }
+    }
+}
+
 void stageOneInit(MData map[MAP_SIZE][MAP_SIZE]){
     int i,j;
     for(i=0; i<MAP_SIZE; i++){
@@ -232,7 +240,7 @@ void stageTwoInit(MData map[MAP_SIZE][MAP_SIZE]){
     int i,j;
     for(i=0; i<MAP_SIZE; i++){
         for(j=0; j<MAP_SIZE ;j++){
-            if(i== MAP_SIZE/2){
+            if(i==(int)MAP_SIZE/2 || j==0 || j==MAP_SIZE-1 ){
                 map[i][j] = WALL;
             }else{
                 map[i][j] = EMPTY;
@@ -271,8 +279,8 @@ void stageFourinit(MData map[MAP_SIZE][MAP_SIZE]){
     }
 }
 
-
-//////////////////////////////////////STAGE MAP SETTING END///////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////// D R A W ////////////////////////////////////////
 
 //draw game map
 void drawMainMap(MData map[MAP_SIZE][MAP_SIZE]){
@@ -352,21 +360,44 @@ void removeSnake(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
     map[snake_x][snake_y] = EMPTY;
 }
 
+
+int rotate(int xy, int way){
+    if(way == UP || way == LEFT){
+        if(xy -1 == -1) {
+            xy = MAP_SIZE-1;
+        }else{
+            --(xy);
+        }
+        return xy;
+    }
+    if(way == DOWN || way == RIGHT){
+        if(xy +1 == MAP_SIZE){
+            xy = 0;
+        }else{
+            ++xy;
+        }
+        return xy;
+    }
+    return FALSE;
+}
+
+
+
 int colWithTail(MData map[MAP_SIZE][MAP_SIZE],SnakePos * sp, int way){
     if(way == UP){
-        if(map[sp->x][(sp->y)-1] == TAIL)
+        if(map[sp->x][rotate(sp->y, way)] == TAIL)
             return TRUE;
     }
     if(way == DOWN){
-        if(map[sp->x][(sp->y)+1] == TAIL)
+        if(map[sp->x][rotate(sp->y, way)] == TAIL)
             return TRUE;
     }
     if(way == LEFT){
-        if(map[(sp->x)-1][sp->y] == TAIL)
+        if(map[rotate(sp->x, way)][sp->y] == TAIL)
             return TRUE;
     }
     if(way == RIGHT){
-        if(map[(sp->x)+1][sp->y] == TAIL)
+        if(map[rotate(sp->x, way)][sp->y] == TAIL)
             return TRUE;
     }
     return FALSE;
@@ -374,43 +405,50 @@ int colWithTail(MData map[MAP_SIZE][MAP_SIZE],SnakePos * sp, int way){
 
 int colWithWall(MData map[MAP_SIZE][MAP_SIZE],SnakePos * sp, int way){
     if(way == UP){
-        if(map[sp->x][(sp->y)-1] == WALL)
+        if(map[sp->x][rotate(sp->y, way)] == WALL)
             return TRUE;
     }
     if(way == DOWN){
-        if(map[sp->x][(sp->y)+1] == WALL)
+        if(map[sp->x][rotate(sp->y, way)] == WALL)
             return TRUE;
     }
     if(way == LEFT){
-        if(map[(sp->x)-1][sp->y] == WALL)
+        if(map[rotate(sp->x, way)][sp->y] == WALL)
             return TRUE;
     }
     if(way == RIGHT){
-        if(map[(sp->x)+1][sp->y] == WALL)
+        if(map[rotate(sp->x, way)][sp->y] == WALL)
             return TRUE;
     }
     return FALSE;
 }
 
+
 //get snake x, y and move snake
 int moveSnakeHead(MData map[MAP_SIZE][MAP_SIZE], SnakePos * snake,int way){
     removeSnake(map, snake->x, snake->y);
-    if(colWithWall(map, snake, way) == TRUE) return COLLISION;
-    if(colWithTail(map, snake, way) == TRUE) return COLLISION;
+    if(colWithWall(map, snake, way) == TRUE){
+        gotoxy(1,1);
+        printf("hit : wall");
+        return COLLISION;
+    }
+    if(colWithTail(map, snake, way) == TRUE){
+        gotoxy(1,1);
+        printf("hit : tail");
+        return COLLISION;
+    }
 
     if(way == UP){
-        if(snake->y -1 == 0) {
+        if(snake->y -1 == -1) {
             snake->y = MAP_SIZE-1;
         }else{
             --(snake->y);
         }
-
-
         setSnake(map, snake->x, (snake->y));
         return UP;
     }
     if(way == DOWN){
-        if(snake->y +1 == MAP_SIZE-1){
+        if(snake->y +1 == MAP_SIZE){
             snake->y = 0;
         }else{
             ++(snake->y);
@@ -419,17 +457,16 @@ int moveSnakeHead(MData map[MAP_SIZE][MAP_SIZE], SnakePos * snake,int way){
         return DOWN;
     }
     if(way == LEFT){
-        if(snake->x -1 == 0){
+        if(snake->x -1 == -1){
             snake->x = MAP_SIZE-1;
         }else{
             --(snake->x);
         }
-
         setSnake(map, (snake->x), snake->y);
         return LEFT;
     }
     if(way == RIGHT){
-        if(snake->x +1 == MAP_SIZE-1){
+        if(snake->x +1 == MAP_SIZE){
             snake->x = 0;
         }else{
             ++(snake->x);
@@ -437,7 +474,6 @@ int moveSnakeHead(MData map[MAP_SIZE][MAP_SIZE], SnakePos * snake,int way){
         setSnake(map, snake->x, snake->y);
         return RIGHT;
     }
-
     return way;
 }
 
@@ -538,7 +574,6 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE], int stage, int * scoreArr) {
             }
 
             if (key == 224 || key == 0) {
-
                 key = getch();
                 if(overlap(savedKey, key) == TRUE){
                     key = savedKey;
@@ -574,7 +609,7 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE], int stage, int * scoreArr) {
 
 int main() {
     MData map[MAP_SIZE][MAP_SIZE];
-    system("color 2");
+    system("color 7");
     hidecursor();
     int stage;
     int scoreArr[4] = {0};
@@ -589,6 +624,7 @@ int main() {
     }
     return 0;
 }
+
 
 
 
