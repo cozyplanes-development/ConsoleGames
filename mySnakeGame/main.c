@@ -142,10 +142,10 @@ int drawStartMenu(){
     gotoxy(DEFAULT_X,DEFAULT_Y+5);
     printf("> Exit : 't'");
 
-    gotoxy(DEFAULT_X+10,DEFAULT_Y+12);
-    printf("> Made by BlockDMask.");
-    gotoxy(DEFAULT_X+10,DEFAULT_Y+13);
-    printf("> BlockDMask@gmail.com");
+    gotoxy(DEFAULT_X+11,DEFAULT_Y+14);
+    printf("<Made by BlockDMask.>");
+    gotoxy(DEFAULT_X+11,DEFAULT_Y+15);
+    printf("<BlockDMask@gmail.com>");
 
     while(1){
         int keyDown = getKeyDown();
@@ -155,10 +155,10 @@ int drawStartMenu(){
         if(keyDown == 't' || keyDown == 'T'){
             return FALSE;
         }
-        gotoxy(DEFAULT_X+4,DEFAULT_Y+9);
+        gotoxy(DEFAULT_X+5,DEFAULT_Y+9);
         printf("-- press 's' to start --");
         Sleep(1000/3);
-        gotoxy(DEFAULT_X+4,DEFAULT_Y+9);
+        gotoxy(DEFAULT_X+5,DEFAULT_Y+9);
         printf("                         ");
         Sleep(1000/3);
     }
@@ -167,22 +167,25 @@ int drawStartMenu(){
 //show stage Menu and score;
 int drawSpeedMenu(int * scoreArr){
     int i;
-    FILE * rfp;
+    FILE * rfp, * wfp;
     rfp = fopen("score.txt", "r");
     gotoxy(DEFAULT_X,DEFAULT_Y+2);
     printf("================ BEST SCORE ================");
     if(rfp==NULL){
+        wfp = fopen("score.txt","w");
+        fprintf(wfp, "%d %d %d %d", scoreArr[0], scoreArr[1], scoreArr[2], scoreArr[3]);
         for(i=0; i<4; i++) {
             gotoxy(DEFAULT_X,DEFAULT_Y+(i+4));
             printf(" Stage [%d] : %d", i + 1, scoreArr[i]);
         }
-    }else{
-        fscanf(rfp, "%d %d %d %d", &scoreArr[0], &scoreArr[1], &scoreArr[2], &scoreArr[3]);
-        for(i=0; i<4; i++){
-            gotoxy(DEFAULT_X,DEFAULT_Y+(i+4));
-            printf(" Stage [%d] : %d", i+1, scoreArr[i]);
-        }
+        fclose(wfp);
     }
+    fscanf(rfp, "%d %d %d %d", &scoreArr[0], &scoreArr[1], &scoreArr[2], &scoreArr[3]);
+    for(i=0; i<4; i++){
+        gotoxy(DEFAULT_X,DEFAULT_Y+(i+4));
+        printf(" Stage [%d] : %d", i+1, scoreArr[i]);
+        }
+
     fclose(rfp);
 
     while(1){
@@ -303,9 +306,9 @@ void drawMainMap(MData map[MAP_SIZE][MAP_SIZE]){
 
 void drawSubMap(int score, int best, int stage){
     gotoxy(DEFAULT_X,MAP_SIZE+1);
-    printf(" Score : %4d", score);
+    printf(" Stage[%d] Best Score : %4d", stage, best);
     gotoxy(DEFAULT_X,MAP_SIZE+2);
-    printf(" Stage[%d] Best  : %4d", stage, best);
+    printf(" Stage[%d] Your Score : %4d", stage, score);
     gotoxy(DEFAULT_X+8,MAP_SIZE+5);
     printf("[Exit - 't' / Pause - 'p']\n");
 
@@ -431,12 +434,12 @@ int moveSnakeHead(MData map[MAP_SIZE][MAP_SIZE], SnakePos * snake,int way){
     removeSnake(map, snake->x, snake->y);
     if(colWithWall(map, snake, way) == TRUE){
         gotoxy(1,1);
-        printf("hit : wall");
+        printf("> Hit : wall");
         return COLLISION;
     }
     if(colWithTail(map, snake, way) == TRUE){
         gotoxy(1,1);
-        printf("hit : tail");
+        printf("> Hit : tail");
         return COLLISION;
     }
 
@@ -506,7 +509,11 @@ int isCollision(int state){
 }
 void GameOver(int score, int best, Queue *pq, int stage, int * scoreArr){
     FILE * wfp;
-    if(score >= best) scoreArr[stage-1] =score;
+    if(score >= best){
+        scoreArr[stage-1] = score;
+    } else{
+        scoreArr[stage-1] = best;
+    }
     wfp = fopen("score.txt", "w");
     fprintf(wfp, "%d %d %d %d", scoreArr[0], scoreArr[1], scoreArr[2], scoreArr[3]);
     fclose(wfp);
@@ -524,7 +531,7 @@ void GameOver(int score, int best, Queue *pq, int stage, int * scoreArr){
 }
 
 void GameStart(MData map[MAP_SIZE][MAP_SIZE], int stage, int * scoreArr) {
-    int best = 0;
+    int best = scoreArr[stage-1];
     int score = 0;
     int key, savedKey=0;
     Queue queue;
