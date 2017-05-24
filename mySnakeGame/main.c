@@ -142,8 +142,10 @@ int drawStartMenu(){
     gotoxy(DEFAULT_X,DEFAULT_Y+5);
     printf("> Exit : 't'");
 
-    gotoxy(DEFAULT_X+12,DEFAULT_Y+12);
-    printf("made by BlockDMask.");
+    gotoxy(DEFAULT_X+10,DEFAULT_Y+12);
+    printf("> Made by BlockDMask.");
+    gotoxy(DEFAULT_X+10,DEFAULT_Y+13);
+    printf("> BlockDMask@gmail.com");
 
     while(1){
         int keyDown = getKeyDown();
