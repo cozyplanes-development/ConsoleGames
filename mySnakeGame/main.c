@@ -1,10 +1,12 @@
 //move snake                    o
 //collision with wall           o
-//collision with itself         x
+//collision with itself         o
 //collision with fruit          o
 //read best score from file.    o
 //write best score to file      o
-//what about using Queue.?      o
+//what about using Queue ?      o
+//map changing					x
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <conio.h>
@@ -24,6 +26,7 @@
 #define WALL 1
 #define EMPTY 0
 #define HEAD 2
+#define TAIL 3
 #define FRUIT 5
 #define COLLISION 10
 
@@ -161,7 +164,7 @@ int drawStartMenu(){
 }
 //show level Menu and score;
 int drawLevelMenu(int * scoreArr){
-    int score, i;
+    int i;
     FILE * rfp;
     rfp = fopen("score.txt", "r");
     gotoxy(DEFAULT_X,DEFAULT_Y+2);
@@ -169,13 +172,13 @@ int drawLevelMenu(int * scoreArr){
     if(rfp==NULL){
         for(i=0; i<4; i++) {
             gotoxy(DEFAULT_X,DEFAULT_Y+(i+4));
-            printf("Level [%d] : %d", i + 1, scoreArr[i]);
+            printf(" Level [%d] : %d", i + 1, scoreArr[i]);
         }
     }else{
         fscanf(rfp, "%d %d %d %d", &scoreArr[0], &scoreArr[1], &scoreArr[2], &scoreArr[3]);
         for(i=0; i<4; i++){
             gotoxy(DEFAULT_X,DEFAULT_Y+(i+4));
-            printf("Level [%d] : %d", i+1, scoreArr[i]);
+            printf(" Level [%d] : %d", i+1, scoreArr[i]);
         }
     }
 
@@ -239,15 +242,15 @@ void drawMainMap(MData map[MAP_SIZE][MAP_SIZE]){
                 printf(" ");
             }
         }
-     }
+    }
 }
 
 
 void drawSubMap(int score, int best, int level){
     gotoxy(DEFAULT_X,MAP_SIZE+1);
-    printf("Score : %4d", score);
+    printf(" Score : %4d", score);
     gotoxy(DEFAULT_X,MAP_SIZE+2);
-    printf("Level[%d] Best  : %4d", level, best);
+    printf(" Level[%d] Best  : %4d", level, best);
     gotoxy(DEFAULT_X+8,MAP_SIZE+5);
     printf("[Exit - 't' / Pause - 'p']\n");
 
@@ -285,7 +288,11 @@ int setBonusFruit(MData map[MAP_SIZE][MAP_SIZE], FruitPos * fp){
     }
     return numOfFruit;
 }
-
+void setSnakeTail(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
+    gotoxy(snake_x, snake_y);
+    printf("o");
+    map[snake_x][snake_y] = TAIL;
+}
 void setSnake(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
     gotoxy(snake_x, snake_y);
     printf("s");
@@ -298,32 +305,55 @@ void removeSnake(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
     map[snake_x][snake_y] = EMPTY;
 }
 
-//get snake x, y and move snake
-int moveSnake(MData map[MAP_SIZE][MAP_SIZE], SnakePos * snake,int way){
+int colWithTail(MData map[MAP_SIZE][MAP_SIZE],SnakePos * sp, int way){
     if(way == UP){
-        if(snake->y < 2) return COLLISION;
+        if(map[sp->x][(sp->y)-1] == TAIL)
+            return TRUE;
+    }
+    if(way == DOWN){
+        if(map[sp->x][(sp->y)+1] == TAIL)
+            return TRUE;
+    }
+    if(way == LEFT){
+        if(map[(sp->x)-1][sp->y] == TAIL)
+            return TRUE;
+    }
+    if(way == RIGHT){
+        if(map[(sp->x)+1][sp->y] == TAIL)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+//get snake x, y and move snake
+int moveSnakeHead(MData map[MAP_SIZE][MAP_SIZE], SnakePos * snake,int way){
+    removeSnake(map, snake->x, snake->y);
+    if(way == UP){
+        if(snake->y < 2 || colWithTail(map, snake, way)==TRUE ) return COLLISION;
         --(snake->y);
         setSnake(map, snake->x, (snake->y));
         return UP;
     }
     if(way == DOWN){
-        if(snake->y > MAP_SIZE-3) return COLLISION;
+        if(snake->y > MAP_SIZE-3|| colWithTail(map, snake, way)==TRUE ) return COLLISION;
         ++(snake->y);
         setSnake(map, snake->x, (snake->y));
         return DOWN;
     }
     if(way == LEFT){
-        if(snake->x < 2) return COLLISION;
+        if(snake->x < 2|| colWithTail(map, snake, way)==TRUE ) return COLLISION;
         --(snake->x);
         setSnake(map, (snake->x), snake->y);
-
         return LEFT;
     }
     if(way == RIGHT){
-        if(snake->x > MAP_SIZE-3) return COLLISION;
-        setSnake(map, ++(snake->x), snake->y);
+        if(snake->x > MAP_SIZE-3 || colWithTail(map, snake, way)==TRUE ) return COLLISION;
+        ++(snake->x);
+        setSnake(map, snake->x, snake->y);
         return RIGHT;
     }
+
+    return way;
 }
 
 int overlap(int savedKey, int key){
@@ -371,10 +401,9 @@ void GameOver(int score, int best, Queue *pq, int level, int * scoreArr){
 }
 
 void GameStart(MData map[MAP_SIZE][MAP_SIZE], int level, int * scoreArr) {
-    int i;
     int best = 0;
-    int mode;
 
+    int mode =NORMAL;
     if(level ==1) mode = EASY;
     else if(level ==2) mode = NORMAL;
     else if(level ==3) mode = HARD;
@@ -385,8 +414,9 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE], int level, int * scoreArr) {
     Queue queue;
     QueueInit(&queue);
     SnakePos snake = {MAP_SIZE/2, MAP_SIZE/2};
+    SnakePos snakeSecond;
     SnakePos snakeTail;
-    int time = TRUE;
+    int time = FALSE;
     FruitPos fruit;
     fruit.numOfFruit=0;
     setSnake(map, snake.x, snake.y);
@@ -424,8 +454,10 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE], int level, int * scoreArr) {
                 if(overlap(savedKey, key) == TRUE){
                     key = savedKey;
                 }
-                Enqueue(&queue, snake);
-                savedKey = moveSnake(map, &snake, key);
+                snakeSecond = snake;
+                savedKey = moveSnakeHead(map, &snake, key);
+                Enqueue(&queue, snakeSecond);
+                setSnakeTail(map, snakeSecond.x, snakeSecond.y);
                 if(time == TRUE){
                     snakeTail = Dequeue(&queue);
                     removeSnake(map, snakeTail.x, snakeTail.y);
@@ -435,15 +467,17 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE], int level, int * scoreArr) {
                 if(isCollision(savedKey)){ GameOver(score, best, &queue,level, scoreArr); return;  }
             }
         }else{
-                Enqueue(&queue, snake);
-                savedKey = moveSnake(map, &snake, savedKey);
-                if(time == TRUE){
-                    snakeTail = Dequeue(&queue);
-                    removeSnake(map, snakeTail.x, snakeTail.y);
-                }else{
+            snakeSecond = snake;
+            savedKey = moveSnakeHead(map, &snake, savedKey);
+            Enqueue(&queue, snakeSecond);
+            setSnakeTail(map, snakeSecond.x, snakeSecond.y);
+            if(time == TRUE){
+                snakeTail = Dequeue(&queue);
+                removeSnake(map, snakeTail.x, snakeTail.y);
+            }else{
                 time = TRUE;
-                }
-                if(isCollision(savedKey)){ GameOver(score, best,&queue,level,scoreArr); return;  }
+            }
+            if(isCollision(savedKey)){ GameOver(score, best,&queue,level,scoreArr); return;  }
 
         }
     }
@@ -467,3 +501,5 @@ int main() {
     }
     return 0;
 }
+
+
