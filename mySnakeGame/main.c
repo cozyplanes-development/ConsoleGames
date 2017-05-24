@@ -10,7 +10,7 @@
 //separate tail with head       o
 //added collision
 //map changing                  x
-
+//<V3.2>-----------------------------finish
 #include <stdio.h>
 #include <stdlib.h>
 #include <conio.h>
