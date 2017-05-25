@@ -1,3 +1,0 @@
-"C:\Program Files\JetBrains\CLion 2017.1.2\bin\cmake\bin\cmake.exe" -E remove -f CMakeFiles\mySnakeGame.dir/objects.a
-C:\MinGW\bin\ar.exe cr CMakeFiles\mySnakeGame.dir/objects.a @CMakeFiles\mySnakeGame.dir\objects1.rsp
-C:\MinGW\bin\gcc.exe  -g   -Wl,--whole-archive CMakeFiles\mySnakeGame.dir/objects.a -Wl,--no-whole-archive  -o mySnakeGame.exe -Wl,--out-implib,libmySnakeGame.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\mySnakeGame.dir\linklibs.rsp
