@@ -1,10 +1,16 @@
+//<V1.0>
 //move snake                    o
 //collision with wall           o
-//collision with itself         x
+//collision with itself         o
 //collision with fruit          o
 //read best score from file.    o
 //write best score to file      o
-//what about using Queue.?      o
+//what about using Queue ?      o
+//<V2.0>
+//separate tail with head       o
+//added collision
+//map changing                  x
+//<V3.2>-----------------------------finish
 #include <stdio.h>
 #include <stdlib.h>
 #include <conio.h>
@@ -24,16 +30,14 @@
 #define WALL 1
 #define EMPTY 0
 #define HEAD 2
+#define TAIL 3
 #define FRUIT 5
 #define COLLISION 10
 
 #define TRUE 1
 #define FALSE 0
 
-#define EASY 8
-#define NORMAL 12
-#define HARD 15
-#define HELL 35
+#define NORMAL 10
 
 
 typedef int MData;
@@ -138,8 +142,10 @@ int drawStartMenu(){
     gotoxy(DEFAULT_X,DEFAULT_Y+5);
     printf("> Exit : 't'");
 
-    gotoxy(DEFAULT_X+12,DEFAULT_Y+12);
-    printf("made by BlockDMask.");
+    gotoxy(DEFAULT_X+11,DEFAULT_Y+14);
+    printf("<Made by BlockDMask.>");
+    gotoxy(DEFAULT_X+11,DEFAULT_Y+15);
+    printf("<BlockDMask@gmail.com>");
 
     while(1){
         int keyDown = getKeyDown();
@@ -149,35 +155,36 @@ int drawStartMenu(){
         if(keyDown == 't' || keyDown == 'T'){
             return FALSE;
         }
-
-        gotoxy(DEFAULT_X+4,DEFAULT_Y+9);
+        gotoxy(DEFAULT_X+5,DEFAULT_Y+9);
         printf("-- press 's' to start --");
         Sleep(1000/3);
-        gotoxy(DEFAULT_X+4,DEFAULT_Y+9);
+        gotoxy(DEFAULT_X+5,DEFAULT_Y+9);
         printf("                         ");
         Sleep(1000/3);
     }
 
 }
-//show level Menu and score;
-int drawLevelMenu(int * scoreArr){
-    int score, i;
-    FILE * rfp;
+//show stage Menu and score;
+int drawSpeedMenu(int * scoreArr){
+    int i;
+    FILE * rfp, * wfp;
     rfp = fopen("score.txt", "r");
     gotoxy(DEFAULT_X,DEFAULT_Y+2);
     printf("================ BEST SCORE ================");
     if(rfp==NULL){
+        wfp = fopen("score.txt","w");
+        fprintf(wfp, "%d %d %d %d", scoreArr[0], scoreArr[1], scoreArr[2], scoreArr[3]);
         for(i=0; i<4; i++) {
             gotoxy(DEFAULT_X,DEFAULT_Y+(i+4));
-            printf("Level [%d] : %d", i + 1, scoreArr[i]);
+            printf(" Stage [%d] : %d", i + 1, scoreArr[i]);
         }
-    }else{
-        fscanf(rfp, "%d %d %d %d", &scoreArr[0], &scoreArr[1], &scoreArr[2], &scoreArr[3]);
-        for(i=0; i<4; i++){
-            gotoxy(DEFAULT_X,DEFAULT_Y+(i+4));
-            printf("Level [%d] : %d", i+1, scoreArr[i]);
-        }
+        fclose(wfp);
     }
+    fscanf(rfp, "%d %d %d %d", &scoreArr[0], &scoreArr[1], &scoreArr[2], &scoreArr[3]);
+    for(i=0; i<4; i++){
+        gotoxy(DEFAULT_X,DEFAULT_Y+(i+4));
+        printf(" Stage [%d] : %d", i+1, scoreArr[i]);
+        }
 
     fclose(rfp);
 
@@ -196,7 +203,7 @@ int drawLevelMenu(int * scoreArr){
             return 4;
         }
         gotoxy(DEFAULT_X,DEFAULT_Y+9);
-        printf(">> Choose Level : 1, 2, 3, 4");
+        printf(">> Choose Stage : 1, 2, 3, 4");
         Sleep(1000/3);
         gotoxy(DEFAULT_X,DEFAULT_Y+9);
         printf(">>                          ");
@@ -205,8 +212,17 @@ int drawLevelMenu(int * scoreArr){
 
 }
 
+//////////////////////////////////////STAGE MAP SETTING////////////////////////////////
+void stageClear(MData map[MAP_SIZE][MAP_SIZE]){
+    int i, j;
+    for(i=0; i<=MAP_SIZE; i++){
+        for(j=0; i<=MAP_SIZE; j++){
+            map[i][j] = EMPTY;
+        }
+    }
+}
 
-void mapInit(MData map[MAP_SIZE][MAP_SIZE]){
+void stageOneInit(MData map[MAP_SIZE][MAP_SIZE]){
     int i,j;
     for(i=0; i<MAP_SIZE; i++){
         if(i==0 || i==MAP_SIZE-1){
@@ -225,6 +241,51 @@ void mapInit(MData map[MAP_SIZE][MAP_SIZE]){
     }
 }
 
+void stageTwoInit(MData map[MAP_SIZE][MAP_SIZE]){
+    int i,j;
+    for(i=0; i<MAP_SIZE; i++){
+        for(j=0; j<MAP_SIZE ;j++){
+            if(i==(int)MAP_SIZE/2 || j==0 || j==MAP_SIZE-1 ){
+                map[i][j] = WALL;
+            }else{
+                map[i][j] = EMPTY;
+            }
+        }
+
+    }
+ }
+void stageThreeInit(MData map[MAP_SIZE][MAP_SIZE]){
+    int i,j;
+    for(i=0; i<MAP_SIZE; i++){
+        for(j=0; j<MAP_SIZE ;j++){
+            if(i== MAP_SIZE/2 || j == MAP_SIZE/2){
+                map[i][j] = WALL;
+            }else{
+                map[i][j] = EMPTY;
+            }
+        }
+    }
+}
+
+void stageFourinit(MData map[MAP_SIZE][MAP_SIZE]){
+    int i,j;
+    for(i=0; i<MAP_SIZE; i++){
+        for(j=0; j<MAP_SIZE ;j++){
+            if(i==j || i+j == MAP_SIZE-1){
+                if(i == MAP_SIZE/2 -1 || i == MAP_SIZE/2)
+                    map[i][j] = EMPTY;
+                else
+                    map[i][j] = WALL;
+
+            }else{
+                map[i][j] = EMPTY;
+            }
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////// D R A W ////////////////////////////////////////
 
 //draw game map
 void drawMainMap(MData map[MAP_SIZE][MAP_SIZE]){
@@ -239,15 +300,15 @@ void drawMainMap(MData map[MAP_SIZE][MAP_SIZE]){
                 printf(" ");
             }
         }
-     }
+    }
 }
 
 
-void drawSubMap(int score, int best, int level){
+void drawSubMap(int score, int best, int stage){
     gotoxy(DEFAULT_X,MAP_SIZE+1);
-    printf("Score : %4d", score);
+    printf(" Stage[%d] Best Score : %4d", stage, best);
     gotoxy(DEFAULT_X,MAP_SIZE+2);
-    printf("Level[%d] Best  : %4d", level, best);
+    printf(" Stage[%d] Your Score : %4d", stage, score);
     gotoxy(DEFAULT_X+8,MAP_SIZE+5);
     printf("[Exit - 't' / Pause - 'p']\n");
 
@@ -267,7 +328,7 @@ int setFruit(MData map[MAP_SIZE][MAP_SIZE], FruitPos * fp){
             fp->y = j;
             (fp->numOfFruit)++;
             gotoxy(i, j);
-            printf("+");
+            printf("F");
             return 1;
         }
     }
@@ -286,6 +347,12 @@ int setBonusFruit(MData map[MAP_SIZE][MAP_SIZE], FruitPos * fp){
     return numOfFruit;
 }
 
+void setSnakeTail(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
+    gotoxy(snake_x, snake_y);
+    printf("o");
+    map[snake_x][snake_y] = TAIL;
+}
+
 void setSnake(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
     gotoxy(snake_x, snake_y);
     printf("s");
@@ -298,32 +365,121 @@ void removeSnake(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
     map[snake_x][snake_y] = EMPTY;
 }
 
-//get snake x, y and move snake
-int moveSnake(MData map[MAP_SIZE][MAP_SIZE], SnakePos * snake,int way){
+
+int rotate(int xy, int way){
+    if(way == UP || way == LEFT){
+        if(xy -1 == -1) {
+            xy = MAP_SIZE-1;
+        }else{
+            --(xy);
+        }
+        return xy;
+    }
+    if(way == DOWN || way == RIGHT){
+        if(xy +1 == MAP_SIZE){
+            xy = 0;
+        }else{
+            ++xy;
+        }
+        return xy;
+    }
+    return FALSE;
+}
+
+
+
+int colWithTail(MData map[MAP_SIZE][MAP_SIZE],SnakePos * sp, int way){
     if(way == UP){
-        if(snake->y < 2) return COLLISION;
-        --(snake->y);
+        if(map[sp->x][rotate(sp->y, way)] == TAIL)
+            return TRUE;
+    }
+    if(way == DOWN){
+        if(map[sp->x][rotate(sp->y, way)] == TAIL)
+            return TRUE;
+    }
+    if(way == LEFT){
+        if(map[rotate(sp->x, way)][sp->y] == TAIL)
+            return TRUE;
+    }
+    if(way == RIGHT){
+        if(map[rotate(sp->x, way)][sp->y] == TAIL)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+int colWithWall(MData map[MAP_SIZE][MAP_SIZE],SnakePos * sp, int way){
+    if(way == UP){
+        if(map[sp->x][rotate(sp->y, way)] == WALL)
+            return TRUE;
+    }
+    if(way == DOWN){
+        if(map[sp->x][rotate(sp->y, way)] == WALL)
+            return TRUE;
+    }
+    if(way == LEFT){
+        if(map[rotate(sp->x, way)][sp->y] == WALL)
+            return TRUE;
+    }
+    if(way == RIGHT){
+        if(map[rotate(sp->x, way)][sp->y] == WALL)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+
+//get snake x, y and move snake
+int moveSnakeHead(MData map[MAP_SIZE][MAP_SIZE], SnakePos * snake,int way){
+    removeSnake(map, snake->x, snake->y);
+    if(colWithWall(map, snake, way) == TRUE){
+        gotoxy(1,1);
+        printf("> Hit : wall");
+        return COLLISION;
+    }
+    if(colWithTail(map, snake, way) == TRUE){
+        gotoxy(1,1);
+        printf("> Hit : tail");
+        return COLLISION;
+    }
+
+    if(way == UP){
+        if(snake->y -1 == -1) {
+            snake->y = MAP_SIZE-1;
+        }else{
+            --(snake->y);
+        }
         setSnake(map, snake->x, (snake->y));
         return UP;
     }
     if(way == DOWN){
-        if(snake->y > MAP_SIZE-3) return COLLISION;
-        ++(snake->y);
+        if(snake->y +1 == MAP_SIZE){
+            snake->y = 0;
+        }else{
+            ++(snake->y);
+        }
         setSnake(map, snake->x, (snake->y));
         return DOWN;
     }
     if(way == LEFT){
-        if(snake->x < 2) return COLLISION;
-        --(snake->x);
+        if(snake->x -1 == -1){
+            snake->x = MAP_SIZE-1;
+        }else{
+            --(snake->x);
+        }
         setSnake(map, (snake->x), snake->y);
-
         return LEFT;
     }
     if(way == RIGHT){
-        if(snake->x > MAP_SIZE-3) return COLLISION;
-        setSnake(map, ++(snake->x), snake->y);
+        if(snake->x +1 == MAP_SIZE){
+            snake->x = 0;
+        }else{
+            ++(snake->x);
+        }
+        setSnake(map, snake->x, snake->y);
         return RIGHT;
     }
+    return way;
 }
 
 int overlap(int savedKey, int key){
@@ -351,9 +507,13 @@ int isCollision(int state){
     if(state == COLLISION) return TRUE;
     return FALSE;
 }
-void GameOver(int score, int best, Queue *pq, int level, int * scoreArr){
+void GameOver(int score, int best, Queue *pq, int stage, int * scoreArr){
     FILE * wfp;
-    if(score >= best) scoreArr[level-1] =score;
+    if(score >= best){
+        scoreArr[stage-1] = score;
+    } else{
+        scoreArr[stage-1] = best;
+    }
     wfp = fopen("score.txt", "w");
     fprintf(wfp, "%d %d %d %d", scoreArr[0], scoreArr[1], scoreArr[2], scoreArr[3]);
     fclose(wfp);
@@ -370,35 +530,39 @@ void GameOver(int score, int best, Queue *pq, int level, int * scoreArr){
     }
 }
 
-void GameStart(MData map[MAP_SIZE][MAP_SIZE], int level, int * scoreArr) {
-    int i;
-    int best = 0;
-    int mode;
-
-    if(level ==1) mode = EASY;
-    else if(level ==2) mode = NORMAL;
-    else if(level ==3) mode = HARD;
-    else if(level ==4) mode = HELL;
-
+void GameStart(MData map[MAP_SIZE][MAP_SIZE], int stage, int * scoreArr) {
+    int best = scoreArr[stage-1];
     int score = 0;
     int key, savedKey=0;
     Queue queue;
     QueueInit(&queue);
-    SnakePos snake = {MAP_SIZE/2, MAP_SIZE/2};
+    SnakePos snake = {MAP_SIZE/4 -2, MAP_SIZE/4 +1};
+    SnakePos snakeSecond;
     SnakePos snakeTail;
-    int time = TRUE;
+    int time = FALSE;
     FruitPos fruit;
     fruit.numOfFruit=0;
-    setSnake(map, snake.x, snake.y);
+
+    if(stage ==1){
+        stageOneInit(map);
+    }else if(stage==2){
+        stageTwoInit(map);
+    }else if(stage==3){
+        stageThreeInit(map);
+    }else{
+        stageFourinit(map);
+    }
 
     drawMainMap(map);
+    setSnake(map, snake.x, snake.y);
 
     while (1) {
-        Sleep(1000/(DWORD)mode);             // snake speed
+
+        Sleep(1000/(DWORD)NORMAL);             // snake speed
         if (fruit.numOfFruit == 0) {          // draw fruit
             setFruit(map, &fruit);
         }
-        drawSubMap(score, best, level);
+        drawSubMap(score, best, stage);
 
         if(colWithFruit(&snake, &fruit) == TRUE){
             (fruit.numOfFruit)--;
@@ -419,51 +583,57 @@ void GameStart(MData map[MAP_SIZE][MAP_SIZE], int level, int * scoreArr) {
             }
 
             if (key == 224 || key == 0) {
-
                 key = getch();
                 if(overlap(savedKey, key) == TRUE){
                     key = savedKey;
                 }
-                Enqueue(&queue, snake);
-                savedKey = moveSnake(map, &snake, key);
+                snakeSecond = snake;
+                savedKey = moveSnakeHead(map, &snake, key);
+                Enqueue(&queue, snakeSecond);
+                setSnakeTail(map, snakeSecond.x, snakeSecond.y);
                 if(time == TRUE){
                     snakeTail = Dequeue(&queue);
                     removeSnake(map, snakeTail.x, snakeTail.y);
                 }else{
                     time = TRUE;
                 }
-                if(isCollision(savedKey)){ GameOver(score, best, &queue,level, scoreArr); return;  }
+                if(isCollision(savedKey)){ GameOver(score, best, &queue,stage, scoreArr); return;  }
             }
         }else{
-                Enqueue(&queue, snake);
-                savedKey = moveSnake(map, &snake, savedKey);
-                if(time == TRUE){
-                    snakeTail = Dequeue(&queue);
-                    removeSnake(map, snakeTail.x, snakeTail.y);
-                }else{
+            snakeSecond = snake;
+            savedKey = moveSnakeHead(map, &snake, savedKey);
+            Enqueue(&queue, snakeSecond);
+            setSnakeTail(map, snakeSecond.x, snakeSecond.y);
+            if(time == TRUE){
+                snakeTail = Dequeue(&queue);
+                removeSnake(map, snakeTail.x, snakeTail.y);
+            }else{
                 time = TRUE;
-                }
-                if(isCollision(savedKey)){ GameOver(score, best,&queue,level,scoreArr); return;  }
+            }
+            if(isCollision(savedKey)){ GameOver(score, best,&queue,stage,scoreArr); return;  }
 
         }
     }
 }
 
 int main() {
-    MData map[MAP_SIZE][MAP_SIZE] ;
-    system("color 2");
+    MData map[MAP_SIZE][MAP_SIZE];
+    system("color 7");
     hidecursor();
-    int level;
+    int stage;
     int scoreArr[4] = {0};
     while(1){
-        mapInit(map);
         system("mode con: cols=44 lines=30");   //console size
         if(drawStartMenu() == FALSE) break;
         system("cls");
-        level = drawLevelMenu(scoreArr);
+        stage = drawSpeedMenu(scoreArr);
         system("cls");
-        GameStart(map, level, scoreArr);
+        GameStart(map, stage, scoreArr);
         system("pause");
     }
     return 0;
 }
+
+
+
+
