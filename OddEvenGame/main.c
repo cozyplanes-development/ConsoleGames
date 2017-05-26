@@ -1,6 +1,6 @@
 #include "common.h"
 #include "game.h"
-
+//done
 int main() {
     int com;
     int usr;
