@@ -1,8 +1,13 @@
 //v1.0
+//>> 2017 05 26
 //draw background               o
 //draw blocks                   o
 //rotate blocks.                o
 //go left, go right the block.  o
+//>> 2017 05 29
+//left, right limit             o
+//rotate near the wall          o
+
 //drop the block.               x
 //read best score from file     x
 //write best score to file      x
@@ -248,7 +253,7 @@ void setBlock(int blockShape[4][4]){
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////!ah//////////////////////////////
 void removeShape(MData map[MAP_SIZE_H][MAP_SIZE_W], int blockShape[4][4], Location * curLoc){
     int h, w;
     for(h=0; h<4;h++){
@@ -257,23 +262,59 @@ void removeShape(MData map[MAP_SIZE_H][MAP_SIZE_W], int blockShape[4][4], Locati
         }
     }
 }
+
+int getShapeLeftLoc(int blockShape[4][4], Location *curLoc){
+    int h, w, leftW=4;
+    for(w=0; w<4;w++){
+        for(h=0; h<4;h++){
+            if(blockShape[h][w] == BLOCK){
+                if(leftW > w)
+                    leftW = w;
+
+            }
+        }
+    }
+    return leftW;
+}
+int getShapeRightLoc(int blockShape[4][4], Location *curLoc){
+    int h, w, rightW=0;
+    for(w=3; w>=0;w--){
+        for(h=3; h>=0;h--){
+            if(blockShape[h][w] == BLOCK){
+                if(rightW < w)
+                    rightW = w;
+            }
+        }
+    }
+    return rightW+1;
+}
+
 void goLeft(MData map[MAP_SIZE_H][MAP_SIZE_W],int blockShape[4][4], Location *curLoc){
-    removeShape(map, blockShape,curLoc);
-    (curLoc->X)--;
+    int leftW = getShapeLeftLoc(blockShape, curLoc);
+
+    if((curLoc->X) + leftW>0){
+        removeShape(map, blockShape,curLoc);
+        (curLoc->X)--;
+    }
+
 }
 void goRight(MData map[MAP_SIZE_H][MAP_SIZE_W],int blockShape[4][4], Location *curLoc){
-    removeShape(map, blockShape,curLoc);
-    (curLoc->X)++;
+    int rightW = getShapeRightLoc(blockShape, curLoc);
 
+    if((curLoc->X) + rightW < MAP_SIZE_W){
+        removeShape(map, blockShape,curLoc);
+        (curLoc->X)++;
+    }
 }
 
 void goDown(MData map[MAP_SIZE_H][MAP_SIZE_W], int blockShape[4][4], Location *curLoc){
     Sleep(1000/10);
 }
 
-void rotate(MData map[MAP_SIZE_H][MAP_SIZE_W],int blockShape[4][4]){
+void rotate(MData map[MAP_SIZE_H][MAP_SIZE_W],int blockShape[4][4], Location * curLoc){
     int i, j;
     int tmp[4][4];
+    int leftW, rightW;
     for(i=0; i<4;i++){
         for(j=0; j<4;j++){
             tmp[j][3-i] = blockShape[i][j];
@@ -284,6 +325,16 @@ void rotate(MData map[MAP_SIZE_H][MAP_SIZE_W],int blockShape[4][4]){
         for(j=0; j<4;j++){
             blockShape[i][j] = tmp[i][j];
         }
+    }
+
+    //벽에 붙어서 rotate 했을때. (when rotate near the wall.
+    leftW= getShapeLeftLoc(blockShape, curLoc);
+    if(curLoc->X + leftW <0){
+        goRight(map, blockShape, curLoc);
+    }
+    rightW = getShapeRightLoc(blockShape, curLoc);
+    if(curLoc->X + rightW >MAP_SIZE_W){
+        goLeft(map, blockShape, curLoc);
     }
 }
 
@@ -323,23 +374,13 @@ int GameStart(MData map[MAP_SIZE_H][MAP_SIZE_W]){
         if(key==224 || key ==0){
             key = getch();
             if(key == UP){
-                rotate(map, blockShape);
-                gotoxy(1, 24);
-                printf("     ");
-                gotoxy(1, 24);;
-                printf("UP");
+                rotate(map, blockShape, &curLoc);
             }else if(key == LEFT){
                 goLeft(map, blockShape, &curLoc);
-                gotoxy(1, 24);
-                printf("     ");
-                gotoxy(1, 24);
-                printf("LEFT");
+
             }else if(key == RIGHT){
                 goRight(map, blockShape, &curLoc);
-                gotoxy(1, 24);
-                printf("     ");
-                gotoxy(1, 24);
-                printf("RIGHT");
+
             }
 
         }
