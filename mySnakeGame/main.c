@@ -1,3 +1,4 @@
+
 //<V1.0>
 //move snake                    o
 //collision with wall           o
@@ -8,9 +9,10 @@
 //what about using Queue ?      o
 //<V2.0>
 //separate tail with head       o
-//added collision
-//map changing                  x
+//added collision               o
+//map changing                  o 
 //<V3.2>-----------------------------finish done
+//<V3.3>--color
 #include <stdio.h>
 #include <stdlib.h>
 #include <conio.h>
@@ -132,11 +134,15 @@ void hidecursor() {
 
 //show start menu
 int drawStartMenu(){
-
+    HANDLE hand = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hand, 13);
     gotoxy(DEFAULT_X,DEFAULT_Y);
     printf("============================================");
+    SetConsoleTextAttribute(hand, 14);
     printf("================ Snake Game ================");
+    SetConsoleTextAttribute(hand, 11);
     printf("============================================");
+    SetConsoleTextAttribute(hand, 15);
     gotoxy(DEFAULT_X,DEFAULT_Y+4);
     printf("> Key  : up, down, left, right,");
     gotoxy(DEFAULT_X,DEFAULT_Y+5);
@@ -147,12 +153,16 @@ int drawStartMenu(){
     gotoxy(DEFAULT_X+11,DEFAULT_Y+15);
     printf("<BlockDMask@gmail.com>");
 
+
+    SetConsoleTextAttribute(hand, 14);
     while(1){
         int keyDown = getKeyDown();
         if(keyDown == 's' || keyDown == 'S') {
+            SetConsoleTextAttribute(hand, 7);
             return TRUE;
         }
         if(keyDown == 't' || keyDown == 'T'){
+            SetConsoleTextAttribute(hand, 7);
             return FALSE;
         }
         gotoxy(DEFAULT_X+5,DEFAULT_Y+9);
@@ -166,11 +176,21 @@ int drawStartMenu(){
 }
 //show stage Menu and score;
 int drawSpeedMenu(int * scoreArr){
+    HANDLE hand = GetStdHandle(STD_OUTPUT_HANDLE);
+
     int i;
     FILE * rfp, * wfp;
     rfp = fopen("score.txt", "r");
-    gotoxy(DEFAULT_X,DEFAULT_Y+2);
+    SetConsoleTextAttribute(hand, 11);
+    gotoxy(DEFAULT_X,DEFAULT_Y);
+    printf("============================================");
+    SetConsoleTextAttribute(hand, 14);
+    gotoxy(DEFAULT_X,DEFAULT_Y+1);
     printf("================ BEST SCORE ================");
+    SetConsoleTextAttribute(hand, 13);
+    gotoxy(DEFAULT_X,DEFAULT_Y+2);
+    printf("============================================");
+    SetConsoleTextAttribute(hand, 15);
     if(rfp==NULL){
         wfp = fopen("score.txt","w");
         fprintf(wfp, "%d %d %d %d", scoreArr[0], scoreArr[1], scoreArr[2], scoreArr[3]);
@@ -191,17 +211,22 @@ int drawSpeedMenu(int * scoreArr){
     while(1){
         int keyDown = getKeyDown();
         if(keyDown == '1') {
+            SetConsoleTextAttribute(hand, 7);
             return 1;
         }
         if(keyDown == '2') {
+            SetConsoleTextAttribute(hand, 7);
             return 2;
         }
         if(keyDown == '3') {
+            SetConsoleTextAttribute(hand, 7);
             return 3;
         }
         if(keyDown == '4') {
+            SetConsoleTextAttribute(hand, 7);
             return 4;
         }
+        SetConsoleTextAttribute(hand, 14);
         gotoxy(DEFAULT_X,DEFAULT_Y+9);
         printf(">> Choose Stage : 1, 2, 3, 4");
         Sleep(1000/3);
@@ -289,34 +314,44 @@ void stageFourinit(MData map[MAP_SIZE][MAP_SIZE]){
 
 //draw game map
 void drawMainMap(MData map[MAP_SIZE][MAP_SIZE]){
+    HANDLE hand = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hand, 15);
+
     int i, j;
     for(i=0; i<MAP_SIZE;i++){
         for(j=0;j<MAP_SIZE;j++) {
             if (map[i][j] == WALL) {
                 gotoxy(i, j);
-                printf("*");
+                printf("□");
             }else if (map[i][j] == EMPTY) {
                 gotoxy(i, j);
                 printf(" ");
             }
         }
     }
+    SetConsoleTextAttribute(hand, 7);
 }
 
 
 void drawSubMap(int score, int best, int stage){
+    HANDLE hand = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hand, 15);
+
     gotoxy(DEFAULT_X,MAP_SIZE+1);
     printf(" Stage[%d] Best Score : %4d", stage, best);
     gotoxy(DEFAULT_X,MAP_SIZE+2);
     printf(" Stage[%d] Your Score : %4d", stage, score);
     gotoxy(DEFAULT_X+8,MAP_SIZE+5);
     printf("[Exit - 't' / Pause - 'p']\n");
+    SetConsoleTextAttribute(hand, 7);
+
 
 }
 /////////////////////////////////////////////////////////////////////////////////////
 
 int setFruit(MData map[MAP_SIZE][MAP_SIZE], FruitPos * fp){
 // i,j >0  &&  i,j < MAP_SIZE-1i
+    HANDLE  hand = GetStdHandle(STD_OUTPUT_HANDLE);
     int i, j;
     srand((unsigned int)time(NULL));
     while(1){
@@ -327,8 +362,11 @@ int setFruit(MData map[MAP_SIZE][MAP_SIZE], FruitPos * fp){
             fp->x = i;
             fp->y = j;
             (fp->numOfFruit)++;
+            SetConsoleTextAttribute(hand, 10);
             gotoxy(i, j);
-            printf("F");
+            printf("★");
+            SetConsoleTextAttribute(hand, 7);
+
             return 1;
         }
     }
@@ -348,14 +386,22 @@ int setBonusFruit(MData map[MAP_SIZE][MAP_SIZE], FruitPos * fp){
 }
 
 void setSnakeTail(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
+    HANDLE hand = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hand, 14);
     gotoxy(snake_x, snake_y);
-    printf("o");
+    //printf("Θ");
+    printf("ㆁ");
     map[snake_x][snake_y] = TAIL;
+    SetConsoleTextAttribute(hand, 7);
+
 }
 
 void setSnake(MData map[MAP_SIZE][MAP_SIZE], int snake_x, int snake_y){
+    HANDLE hand = GetStdHandle(STD_OUTPUT_HANDLE);
     gotoxy(snake_x, snake_y);
-    printf("s");
+    SetConsoleTextAttribute(hand, 14);
+    printf("●");
+    SetConsoleTextAttribute(hand, 7);
     map[snake_x][snake_y] = HEAD;
 }
 
@@ -509,6 +555,7 @@ int isCollision(int state){
 }
 void GameOver(int score, int best, Queue *pq, int stage, int * scoreArr){
     FILE * wfp;
+    HANDLE hand = GetStdHandle(STD_OUTPUT_HANDLE);
     if(score >= best){
         scoreArr[stage-1] = score;
     } else{
@@ -517,13 +564,14 @@ void GameOver(int score, int best, Queue *pq, int stage, int * scoreArr){
     wfp = fopen("score.txt", "w");
     fprintf(wfp, "%d %d %d %d", scoreArr[0], scoreArr[1], scoreArr[2], scoreArr[3]);
     fclose(wfp);
-
+    SetConsoleTextAttribute(hand, 14);
     gotoxy(MAP_SIZE/2-4, MAP_SIZE/2-5);
     printf("===<GAME OVER>===\n");
-    gotoxy(MAP_SIZE/2-4, MAP_SIZE/2-3);
+    gotoxy(MAP_SIZE/2-3, MAP_SIZE/2-3);
     printf("Your Score : %d\n", score);
     gotoxy(DEFAULT_X+8,MAP_SIZE+5);
     printf("\n");
+    SetConsoleTextAttribute(hand, 7);
 
     while(!isEmpty(pq)){
         Dequeue(pq);
@@ -633,7 +681,6 @@ int main() {
     }
     return 0;
 }
-
 
 
 
