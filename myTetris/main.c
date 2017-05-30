@@ -7,13 +7,14 @@
 //>> 2017 05 29
 //left, right limit             o
 //rotate near the wall          o
-
+//show the second block         o
+//
 //drop the block.               x
 //read best score from file     x
 //write best score to file      x
+//collision with bottom wall    x
+//delete the correct line       x
 
-//collision with side wall
-//collision with bottom wall
 #include <stdio.h>
 #include <stdlib.h>
 #include <Windows.h>
@@ -75,7 +76,7 @@ void drawWall(MData map[MAP_SIZE_H][MAP_SIZE_W]){
         for(w=0; w<=MAP_SIZE_W +1; w++){
             gotoxy(w+1,h+1);
             if(h==0 || w==0 || h==MAP_SIZE_H+1 || w==MAP_SIZE_W+1)
-                printf("¢Ë");
+                printf("â–¦");
         }
         printf("\n");
     }
@@ -86,7 +87,7 @@ void drawWall(MData map[MAP_SIZE_H][MAP_SIZE_W]){
         for(w=HALF_W ; w<=HALF_W+5; w++){
             if(w==HALF_W || w==HALF_W+5 || h==2 || h==7){
                 gotoxy(w, h);
-                printf("¢Ë");
+                printf("â–¦");
             }
         }
     }
@@ -114,11 +115,11 @@ int drawFrontMenu(){
     printf("=====================================================\n");
 
     gotoxy(2,6);
-    printf("Left : ¡ç \n");
+    printf("Left : â† \n");
     gotoxy(2,7);
-    printf("Right : ¡æ \n");
+    printf("Right : â†’ \n");
     gotoxy(2,8);
-    printf("Rotation : ¡è \n");
+    printf("Rotation : â†‘ \n");
     gotoxy(2,9);
     printf("Down: space \n");
     gotoxy(2,10);
@@ -152,7 +153,9 @@ void drawMap(MData map[MAP_SIZE_H][MAP_SIZE_W]){
         for(w=0; w<MAP_SIZE_W; w++){
             gotoxy(w+2,h+2);
             if(map[h][w] == EMPTY){
-                printf("¡¤");
+                printf("Â·");
+            }else if(map[h][w] == BLOCK){
+                printf("â– ");
             }
         }
         printf("\n");
@@ -169,6 +172,25 @@ void drawSubMap(int sec, int best, int score){
     printf("%4d", score);
 }
 
+void drawSubShape(MData map[MAP_SIZE_H][MAP_SIZE_W],int shape[4][4]){
+    int h, w;
+    for(h=3; h<=6 ;h++){
+        for(w=HALF_W+1 ; w<=HALF_W+4; w++){
+                gotoxy(w, h);
+                printf(" ");
+
+        }
+    }
+    for(h=3; h<=6 ;h++){
+        for(w=HALF_W+1 ; w<=HALF_W+4; w++){
+            if(shape[h-3][w - HALF_W-1] == BLOCK){
+                gotoxy(w, h);
+                printf("â– ");
+            }
+        }
+    }
+}
+
 void drawShape(MData map[MAP_SIZE_H][MAP_SIZE_W],int shape[4][4], Location curLoc){
     int h, w;
 
@@ -176,8 +198,8 @@ void drawShape(MData map[MAP_SIZE_H][MAP_SIZE_W],int shape[4][4], Location curLo
         for(w=0; w<4;w++){
             if(shape[h][w] ==BLOCK){
                 map[curLoc.Y+ h][curLoc.X +w]=BLOCK;
-                gotoxy(curLoc.X+2+w,curLoc.Y+2+h);
-                printf("¡á");
+                //gotoxy(curLoc.X+2+w,curLoc.Y+2+h);
+                // printf("â– ");
             }
         }
     }
@@ -203,8 +225,8 @@ void mapInit(MData map[MAP_SIZE_H][MAP_SIZE_W]){
     }
 }
 void locationInit(Location * curLoc){
+    curLoc->X =3;
     curLoc->Y =0;
-    curLoc->X =0;
 }
 void copyBlock(int blockShape[4][4], int copy[4][4]){
     int i, j;
@@ -258,25 +280,25 @@ void removeShape(MData map[MAP_SIZE_H][MAP_SIZE_W], int blockShape[4][4], Locati
     int h, w;
     for(h=0; h<4;h++){
         for(w=0; w<4;w++){
+            if(blockShape[h][w] == BLOCK)
                 map[curLoc->Y + h][curLoc->X + w]=EMPTY;
         }
     }
 }
 
-int getShapeLeftLoc(int blockShape[4][4], Location *curLoc){
+int getShapeLeftLoc(int blockShape[4][4]){
     int h, w, leftW=4;
     for(w=0; w<4;w++){
         for(h=0; h<4;h++){
             if(blockShape[h][w] == BLOCK){
                 if(leftW > w)
                     leftW = w;
-
             }
         }
     }
     return leftW;
 }
-int getShapeRightLoc(int blockShape[4][4], Location *curLoc){
+int getShapeRightLoc(int blockShape[4][4]){
     int h, w, rightW=0;
     for(w=3; w>=0;w--){
         for(h=3; h>=0;h--){
@@ -288,76 +310,206 @@ int getShapeRightLoc(int blockShape[4][4], Location *curLoc){
     }
     return rightW+1;
 }
-
-void goLeft(MData map[MAP_SIZE_H][MAP_SIZE_W],int blockShape[4][4], Location *curLoc){
-    int leftW = getShapeLeftLoc(blockShape, curLoc);
-
-    if((curLoc->X) + leftW>0){
-        removeShape(map, blockShape,curLoc);
-        (curLoc->X)--;
+int getShapeBottomLoc(int blockShape[4][4]){
+    int h, w, bottomH=0;
+    for(w=3; w>=0;w--){
+        for(h=3; h>=0;h--){
+            if(blockShape[h][w] == BLOCK){
+                if(bottomH < h)
+                    bottomH =h;
+            }
+        }
     }
+    return bottomH+1;
+}
+int getEachBottomLoc(int blockShape[4][4], int w){
+    int h, bottomH=-1;
+    for(h=3; h>=0;h--){
+        if(blockShape[h][w] == BLOCK){
+            if(bottomH < h)
+                bottomH =h;
+        }
+    }
+    return bottomH;
+}
+int getEachLeftLoc(int blockShape[4][4], int h){
+    int w, leftW= 5;
+    for(w=0; w<4;w++){
+        if(blockShape[h][w] == BLOCK){
+            if(leftW > w)
+                leftW = w;
+        }
+    }
+    return leftW;
+}
+int getEachRightLoc(int blockShape[4][4], int h){
+    int w, rightW= -1;
+    for(w=0; w<4;w++){
+        if(blockShape[h][w] == BLOCK){
+            if(rightW < w)
+                rightW = w;
+        }
+    }
+    return rightW;
+}
+void goLeft(MData map[MAP_SIZE_H][MAP_SIZE_W],int blockShape[4][4], Location *curLoc){
+    int leftW = getShapeLeftLoc(blockShape);
+    int boundaryArr[4] ={0};
+    int i;
+    for(i=0; i<4;i++){
+        boundaryArr[i] = getEachLeftLoc(blockShape, i);
 
+    }
+    if((curLoc->X) + leftW > 0){
+        if(!((boundaryArr[0] != 5 && map[curLoc->Y][curLoc->X + boundaryArr[0] -1] != EMPTY)
+           ||(boundaryArr[1] != 5 && map[curLoc->Y +1][curLoc->X + boundaryArr[1] -1] != EMPTY)
+           ||(boundaryArr[2] != 5 && map[curLoc->Y +2][curLoc->X + boundaryArr[2] -1] != EMPTY)
+           ||(boundaryArr[3] != 5 && map[curLoc->Y +3][curLoc->X + boundaryArr[3] -1] != EMPTY))){
+
+            removeShape(map, blockShape,curLoc);
+            (curLoc->X)--;
+        }
+    }
 }
 void goRight(MData map[MAP_SIZE_H][MAP_SIZE_W],int blockShape[4][4], Location *curLoc){
-    int rightW = getShapeRightLoc(blockShape, curLoc);
+    int rightW = getShapeRightLoc(blockShape);
+    int boundaryArr[4] ={0};
+    int i;
+    for(i=0; i<4;i++){
+        boundaryArr[i] = getEachLeftLoc(blockShape, i);
+
+    }
 
     if((curLoc->X) + rightW < MAP_SIZE_W){
-        removeShape(map, blockShape,curLoc);
-        (curLoc->X)++;
+        if(!((boundaryArr[0] != 5 && map[curLoc->Y][curLoc->X + boundaryArr[0] +1] != EMPTY)
+             ||(boundaryArr[1] != 5 && map[curLoc->Y +1][curLoc->X + boundaryArr[1] +1] != EMPTY)
+             ||(boundaryArr[2] != 5 && map[curLoc->Y +2][curLoc->X + boundaryArr[2] +1] != EMPTY)
+             ||(boundaryArr[3] != 5 && map[curLoc->Y +3][curLoc->X + boundaryArr[3] +1] != EMPTY))){
+
+            removeShape(map, blockShape,curLoc);
+            (curLoc->X)++;
+        }
+
     }
 }
 
-void goDown(MData map[MAP_SIZE_H][MAP_SIZE_W], int blockShape[4][4], Location *curLoc){
-    Sleep(1000/10);
+int fixShape(MData map[MAP_SIZE_H][MAP_SIZE_W], int blockShape[4][4], Location *curLoc){
+    int w, h;
+    for(w=0; w<4; w++){
+        for(h=0; h<4 ; h++){
+            if(blockShape[h][w] ==1){
+                map[curLoc->Y+ h][curLoc->X +w]=BLOCK;
+            }
+        }
+    }
+}
+
+int goDown(MData map[MAP_SIZE_H][MAP_SIZE_W], int blockShape[4][4], Location *curLoc){
+    int bottomH = getShapeBottomLoc(blockShape);
+    int bottomArr[4] = {0};
+    int i;
+    for(i=0; i<4; i++){
+        bottomArr[i] = getEachBottomLoc(blockShape, i);
+    }
+    if(curLoc->Y + bottomH  == MAP_SIZE_H
+       ||(bottomArr[1] != -1 && map[curLoc->Y + bottomArr[1] +1][curLoc->X + 1] != EMPTY)
+       ||(bottomArr[0] != -1 && map[curLoc->Y + bottomArr[0] +1][curLoc->X + 0] != EMPTY)
+       ||(bottomArr[3] != -1 && map[curLoc->Y + bottomArr[3] +1][curLoc->X + 3] != EMPTY)
+       ||(bottomArr[2] != -1 && map[curLoc->Y + bottomArr[2] +1][curLoc->X + 2] != EMPTY)
+       ){
+        removeShape(map, blockShape, curLoc);
+        fixShape(map, blockShape, curLoc);
+        Sleep(1000/8);
+        return TRUE;
+    }
+
+
+    if(curLoc->Y + bottomH < MAP_SIZE_H){
+        removeShape(map, blockShape, curLoc);
+        Sleep(1000/8);
+        (curLoc->Y)++;
+    }
+    return FALSE;
 }
 
 void rotate(MData map[MAP_SIZE_H][MAP_SIZE_W],int blockShape[4][4], Location * curLoc){
     int i, j;
     int tmp[4][4];
-    int leftW, rightW;
+    int leftW, rightW, bottomH;
+
     for(i=0; i<4;i++){
         for(j=0; j<4;j++){
-            tmp[j][3-i] = blockShape[i][j];
-        }
-    }
-    mapInit(map);
-    for(i=0; i<4;i++){
-        for(j=0; j<4;j++){
-            blockShape[i][j] = tmp[i][j];
+            if(blockShape[i][j] == BLOCK){
+                tmp[j][3-i] = blockShape[i][j];
+                blockShape[i][j] = EMPTY;
+            }
+
         }
     }
 
-    //º®¿¡ ºÙ¾î¼­ rotate ÇßÀ»¶§. (when rotate near the wall.
-    leftW= getShapeLeftLoc(blockShape, curLoc);
+    for(i=0; i<4;i++){
+        for(j=0; j<4;j++){
+            if(tmp[i][j] == 1){
+                blockShape[i][j] = BLOCK;
+            }
+
+        }
+    }
+
+
+    //ë²½ì— ë¶™ì–´ì„œ rotate í–ˆì„ë•Œ. (when rotate near the wall.
+    leftW= getShapeLeftLoc(blockShape);
     if(curLoc->X + leftW <0){
         goRight(map, blockShape, curLoc);
+        if(leftW == 0) goRight(map, blockShape, curLoc); //long shape
     }
-    rightW = getShapeRightLoc(blockShape, curLoc);
+
+    rightW = getShapeRightLoc(blockShape);
     if(curLoc->X + rightW >MAP_SIZE_W){
         goLeft(map, blockShape, curLoc);
+        if(rightW == 4)goLeft(map, blockShape, curLoc); //long shape
+    }
+
+
+    bottomH = getShapeBottomLoc(blockShape);
+    if(curLoc->Y + bottomH > MAP_SIZE_H){
+        removeShape(map, blockShape, curLoc);
+        (curLoc->Y)--;
+        if(bottomH ==4) (curLoc->Y)--;      //long shape
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int GameStart(MData map[MAP_SIZE_H][MAP_SIZE_W]){
     int key;
+    int reachBottom = FALSE;
     int score =0, bestscore =0, sec=0;
     int blockShape[4][4] ={0};
+    int blockShapeSub[4][4] = {0};
     Location curLoc = {2,2};
     mapInit(map);
     drawWall(map);
     drawMap(map);
     // startTime();
 
-    setBlock(blockShape);
     locationInit(&curLoc);
-
-
+    setBlock(blockShape);
+    setBlock(blockShapeSub);
+    drawSubShape(map, blockShapeSub);
     while(1){
-        //goDown(map, blockShape, &curLoc);
+
+        if(reachBottom == TRUE){
+            locationInit(&curLoc);
+            copyBlock(blockShape, blockShapeSub);
+            setBlock(blockShapeSub);
+            drawSubShape(map, blockShapeSub);
+            reachBottom = FALSE;
+        }
+
         drawSubMap(sec,bestscore,score);
         drawShape(map,blockShape, curLoc);
         drawMap(map);
+        reachBottom =goDown(map, blockShape, &curLoc);
 
         key = getKeyDown();
         if(key == 't' || key =='T') break;
@@ -377,14 +529,11 @@ int GameStart(MData map[MAP_SIZE_H][MAP_SIZE_W]){
                 rotate(map, blockShape, &curLoc);
             }else if(key == LEFT){
                 goLeft(map, blockShape, &curLoc);
-
             }else if(key == RIGHT){
                 goRight(map, blockShape, &curLoc);
-
             }
-
         }
-        Sleep(1000/10);
+
     }
     return EXIT;
 }
