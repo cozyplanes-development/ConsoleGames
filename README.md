@@ -1,3 +1,3 @@
 # ConsoleGame
-small game program.\n
+small game program.
 I made them on myself.
